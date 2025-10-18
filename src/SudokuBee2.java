@@ -14,7 +14,7 @@ import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.File;
 
-public class SudokuBee extends Thread {
+public class SudokuBee2 extends Thread {
 	private generalPanel GP;
 	private UIGame game;
 	private UIExit exit;
@@ -35,7 +35,7 @@ public class SudokuBee extends Thread {
 	private String saveFileName = "";
 
 	// Constructor for SudokuBee
-	SudokuBee() {
+	SudokuBee2() {
 		frame.setTitle(" Sudoku Bee");
 		snd = new Tunog("snd/1.mid");
 		error = new Tunog("snd/error.wav");
@@ -953,6 +953,6 @@ public class SudokuBee extends Thread {
 	}
 
 	public static void main(String args[]) {
-		SudokuBee app = new SudokuBee();
+		SudokuBee2 app = new SudokuBee2();
 	}
 }
