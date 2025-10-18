@@ -41,7 +41,7 @@ Java(TM) SE Runtime Environment (build 21.0.6+8-LTS-188)
 Note that you should execute the following command to make the SudokuBee2 run...
 
 ```
-cd C:\Users\Geralyn\OneDrive\Desktop\SudokuBee_src\src
+cd C:\Users\Geralyn\OneDrive\Desktop\SudokuBee_src\src (Change this with your source path)
 javac SudokuBee2.java
 java SudokuBee2
 ```
