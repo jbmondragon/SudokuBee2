@@ -1,4 +1,4 @@
-## This repository is for Team 3's Assignment 1 for CMSC 170.
+## This repository is for Team 3's Assignment 2 for CMSC 170.
 
 This includes the source code for SudokuBee2.
 
