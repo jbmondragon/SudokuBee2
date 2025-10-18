@@ -6,7 +6,10 @@ public class UIOptions extends generalPanel {
 	private JPanel panel[];
 	private JLabel bg;
 
-	private String size[] = { "img\\exit\\size\\9x9.png", "img\\exit\\size\\16x16.png", "img\\exit\\size\\25x25.png" };
+	// Image paths for board size options
+	private String size[] = { "img\\exit\\size\\9x9.png",
+			"img\\exit\\size\\16x16.png",
+			"img\\exit\\size\\25x25.png" };
 	private String sound[] = { "img\\exit\\sound\\on.png", "img\\exit\\sound\\off.png" };
 
 	protected JLabel sizeLabel, levelLabel, soundLabel;
@@ -16,46 +19,50 @@ public class UIOptions extends generalPanel {
 
 	protected int sz, lvl, snd, num;
 
+	// Valid board sizes
+	protected int[] boardSizes = { 9, 16, 25 };
+
 	UIOptions(JPanel panel[]) {
 		this.panel = panel;
 		panel[1].setOpaque(true);
+
 		exit = addButton(panel[1], "img/exit/okay.png", "img/exit/h_okay.png", 385, 401);
 
 		for (int ctr = 0; ctr < 2; ctr++) {
 			left[ctr] = addButton(panel[1], "img/exit/left.png", "img/exit/h_left.png", 356, 235 + 70 * ctr);
-			right[ctr] = addButton(panel[1], "img/exit/right.png", "img/exit/h_right.png", 568, 235 + 70 * ctr);
+			right[ctr] = addButton(panel[1], "img/exit/h_right.png", "img/exit/h_right.png", 568, 235 + 70 * ctr);
 		}
-		sizeLabel = addLabel(panel[1], size[1], 389, 237);
-		soundLabel = addLabel(panel[1], sound[0], 389, 308);
-		bg = addLabel(panel[1], "img/bg/options.png", 100, 99);
 
-		sz = 1;
+		// Default selected size is 9x9 (index 0)
+		sz = 0;
 		num = lvl = snd = 0;
-		// panel[1].setVisible(true);
+
+		sizeLabel = addLabel(panel[1], size[sz], 389, 237);
+		soundLabel = addLabel(panel[1], sound[snd], 389, 308);
+		bg = addLabel(panel[1], "img/bg/options.png", 100, 99);
 	}
 
+	// Get the actual board size (9, 16, or 25)
+	public int getBoardSize() {
+		return boardSizes[sz];
+	}
+
+	// Cycle the board size left or right
 	protected void setSize(boolean isRight) {
 		if (isRight) {
-			sz++;
-			if (sz == 3)
-				sz = 0;
+			sz = (sz + 1) % boardSizes.length; // wrap around
 		} else {
-			sz--;
-			if (sz == -1)
-				sz = 2;
+			sz = (sz - 1 + boardSizes.length) % boardSizes.length; // wrap around
 		}
 		changePicture(sizeLabel, size[sz]);
 	}
 
+	// Toggle sound on/off
 	protected void setSound(boolean isRight) {
 		if (isRight) {
-			snd++;
-			if (snd == 2)
-				snd = 0;
+			snd = (snd + 1) % 2;
 		} else {
-			snd--;
-			if (snd == -1)
-				snd = 1;
+			snd = (snd - 1 + 2) % 2;
 		}
 		changePicture(soundLabel, sound[snd]);
 	}
