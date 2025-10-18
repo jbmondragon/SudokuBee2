@@ -38,7 +38,7 @@ Java(TM) SE Runtime Environment (build 21.0.6+8-LTS-188)
 
 # To Run on Command Line
 
-Note that you should have JavaFX before proceeding...
+Note that you should execute the following command to make the SudokuBee2 run...
 
 ```
 cd C:\Users\Geralyn\OneDrive\Desktop\SudokuBee_src\src
