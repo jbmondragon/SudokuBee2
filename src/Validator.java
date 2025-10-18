@@ -93,28 +93,4 @@ class Validator {
 		}
 		return true;
 	}
-
-	public void printGrid() {
-		System.out.println("\nCurrent Sudoku Grid (" + grid.length + "x" + grid.length + "):\n");
-
-		for (int row = 0; row < grid.length; row++) {
-			// Print a horizontal separator every subgrid height
-			if (row % subDimY == 0 && row != 0) {
-				for (int i = 0; i < grid.length * 3 + subDimX - 1; i++)
-					System.out.print("-");
-				System.out.println();
-			}
-
-			for (int col = 0; col < grid.length; col++) {
-				// Print vertical separator every subgrid width
-				if (col % subDimX == 0 && col != 0)
-					System.out.print(" | ");
-
-				int value = grid[row][col][0];
-				System.out.printf("%2d ", value); // print value with padding
-			}
-			System.out.println();
-		}
-		System.out.println();
-	}
 }
