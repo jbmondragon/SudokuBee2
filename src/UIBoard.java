@@ -7,7 +7,6 @@ public class UIBoard{
 	private JLabel board;
 	private int sudokuArray[][][];
 	private int size, startX, startY, inc, btnX, btnY, ans;
-	private int increment[]={84,56,42};
 	protected JButton btn[][];
 	private generalPanel gp=new generalPanel();
 	UIBoard(){}
@@ -34,26 +33,48 @@ public class UIBoard{
 			}
 		}
 	private void setConstants(boolean setCursor){
-		size=sudokuArray.length;
-		startX=size/6+6;
-		startY=86;
-		inc=increment[size/3-2];
-		btn=new JButton[size][size];
-		for(int ctr=0, X=startX, Y=startY; ctr<size; ctr++, Y+=inc, X=startX){
-			for(int count=0; count<size; count++, X+=inc){
-				String img="normal";
-				if(sudokuArray[ctr][count][1]==0)
-					img="given";
-				btn[ctr][count]=gp.gameButton(pane, "img/box/"+size+"x"+size+"/"+img+"/"+sudokuArray[ctr][count][0]+".png", X, Y);
-				if(setCursor && img.equals("normal"))
-					btn[ctr][count].setCursor(new Cursor(12));
+		size = sudokuArray.length;
+		int cellSize; // Size of each cell image
+		int thickGap;  // Extra pixels to add after each subgrid separator
+		int subSize = (int) Math.sqrt(size);
+		// Base alignment and spacing per board size
+		if (size == 9) {
+			startX = 7;
+			inc = 56;
+			cellSize = 53;
+			thickGap = 0; 
+		} else if (size == 16) {
+			startX = 7;
+			inc = 31  ;
+			cellSize = 29;
+			thickGap = 3; 
+		} else { // 25x25
+			startX = 7;
+			inc = 20;
+			cellSize = 18;
+			thickGap = 2; 
+		}
+		startY = 86;
+		btn = new JButton[size][size];
+		for (int row = 0; row < size; row++) {
+			int posY = startY + row * inc + (row / subSize) * thickGap;
+			for (int col = 0; col < size; col++) {
+				int posX = startX + col * inc + (col / subSize) * thickGap;
+				String img = "normal";
+				if (sudokuArray[row][col][1] == 0)
+					img = "given";
+				btn[row][col] = gp.gameButton(pane,
+						"img/box/" + size + "x" + size + "/" + img + "/" + sudokuArray[row][col][0] + ".png",
+						posX, posY, cellSize, cellSize);
+				if (setCursor && img.equals("normal"))
+					btn[row][col].setCursor(new Cursor(12));
 				else
-					btn[ctr][count].setCursor(new Cursor(0));
-				if(sudokuArray[ctr][count][0]!=0)
+					btn[row][col].setCursor(new Cursor(0));
+				if (sudokuArray[row][col][0] != 0)
 					ans++;
-				}
 			}
-		board=gp.addLabel(pane,"img/board/"+size+"x"+size+".png",0,84);
+		}
+		board = gp.addLabel(pane, "img/board/" + size + "x" + size + ".png", 0, 84);
 		}
 	protected JButton getButton(){
 		return btn[btnX][btnY];

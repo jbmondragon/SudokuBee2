@@ -69,6 +69,7 @@ public class SudokuBee2 extends Thread {
 				isSolved = false;
 				try {
 					start();
+					triggerGeneration();
 				} catch (Exception ee) {
 					start = true;
 				}
@@ -422,6 +423,7 @@ public class SudokuBee2 extends Thread {
 						gameMode = false;
 					try {
 						start();
+						triggerGeneration();
 					} catch (Exception ee) {
 						start = true;
 					}
@@ -719,6 +721,7 @@ private void triggerGeneration() {
 						gameMode = true;
 						try {
 							start();
+							triggerGeneration();
 						} catch (Exception ee) {
 							start = true;
 						}

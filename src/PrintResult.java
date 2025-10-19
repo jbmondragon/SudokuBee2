@@ -11,7 +11,12 @@ class PrintResult{
 	PrintResult(String filename){
 		this.filename=filename;
 		try{
-			writer=new FileWriter(new java.io.File(filename));
+			java.io.File file = new java.io.File(filename);
+			java.io.File parentDir = file.getParentFile();
+			if (parentDir != null && !parentDir.exists()) {
+				parentDir.mkdirs();
+			}
+			writer=new FileWriter(file);
 			print= new PrintWriter(writer);
 			}
 		catch(Exception e){

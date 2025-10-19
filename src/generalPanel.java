@@ -143,6 +143,18 @@ public class generalPanel{
 		label.setVisible(false);
 		return label;
 		}
+	protected JLabel addInvisibleLabel(Container pane, String string, int x, int y, int width, int height){
+		ImageIcon originalImg = new ImageIcon(string);
+		java.awt.Image scaledImage = originalImg.getImage().getScaledInstance(width, height, java.awt.Image.SCALE_SMOOTH);
+		Icon img = new ImageIcon(scaledImage);
+		JLabel label = new JLabel();
+		label.setVisible(false);
+		label.setIcon(img);
+		pane.add(label);
+		label.setBounds(x, y, width, height);
+		label.setVisible(false);
+		return label;
+		}
 //JButton
 	protected JButton addButton(Container pane, String string, int x, int y, int width, int height){
 		JButton button=new JButton(string);
@@ -168,6 +180,20 @@ public class generalPanel{
 		JButton button=new JButton(img);
 		pane.add(button);
 		button.setBounds(x,y,img.getIconWidth(),img.getIconHeight());
+		button.setContentAreaFilled(false);
+		button.setBorderPainted(false);
+		button.setBorder(null);
+		button.setOpaque(false);
+		setButton(button);
+		return button;
+		}
+	protected JButton gameButton(Container pane, String string, int x, int y, int width, int height){
+		ImageIcon originalImg = new ImageIcon(string);
+		java.awt.Image scaledImage = originalImg.getImage().getScaledInstance(width, height, java.awt.Image.SCALE_SMOOTH);
+		Icon img = new ImageIcon(scaledImage);
+		JButton button = new JButton(img);
+		pane.add(button);
+		button.setBounds(x, y, width, height);
 		button.setContentAreaFilled(false);
 		button.setBorderPainted(false);
 		button.setBorder(null);
