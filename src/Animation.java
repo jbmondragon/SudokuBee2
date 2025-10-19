@@ -37,7 +37,7 @@ public class Animation {
 			cellSize = 29;
 			thickGap = 3;
 		} else { // 25x25
-			startX = 7;
+			startX = 4;
 			inc = 20;
 			cellSize = 18;
 			thickGap = 2;
