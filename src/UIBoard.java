@@ -63,9 +63,15 @@ public class UIBoard{
 				String img = "normal";
 				if (sudokuArray[row][col][1] == 0)
 					img = "given";
-				btn[row][col] = gp.gameButton(pane,
-						"img/box/" + size + "x" + size + "/" + img + "/" + sudokuArray[row][col][0] + ".png",
-						posX, posY, cellSize, cellSize);
+				
+					String imagePath = "img/box/" + size + "x" + size + "/" + img + "/" + sudokuArray[row][col][0] + ".png";
+
+				if (size == 16 || size == 25) {
+					btn[row][col] = gp.gameButton(pane, imagePath, posX, posY);
+				} else {
+					btn[row][col] = gp.gameButton(pane, imagePath, posX, posY, cellSize, cellSize);
+				}
+				
 				if (setCursor && img.equals("normal"))
 					btn[row][col].setCursor(new Cursor(12));
 				else
