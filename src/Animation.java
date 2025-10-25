@@ -10,6 +10,7 @@ public class Animation {
 	private generalPanel gp = new generalPanel();
 
 	Animation() {
+
 	}
 
 	Animation(int sudokuArray[][][], JPanel pane) {
