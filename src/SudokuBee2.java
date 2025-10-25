@@ -355,41 +355,13 @@ public class SudokuBee2 extends Thread {
 		});
 		game.solve.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				try {
-					int size = board.getSize();
-					if (size != 9) {
-						exit(8); // Only standard 9x9 Sudoku supported
-						return;
-					}
-
-					// Convert 3D board array to 2D
-					int[][] sudokuBoard = new int[9][9];
-					int[][][] guiBoard = board.getSudokuArray();
-					for (int i = 0; i < 9; i++)
-						for (int j = 0; j < 9; j++)
-							sudokuBoard[i][j] = guiBoard[i][j][0]; // [0] is value
-
-					// Solve
-					SudokuSolver solver = new SudokuSolver();
-					if (solver.solve(sudokuBoard)) {
-						// Update GUI
-						for (int i = 0; i < 9; i++) {
-							for (int j = 0; j < 9; j++) {
-								board.setSudokuArray(sudokuBoard[i][j], true, i, j);
-								GP.changePicture(board.btn[i][j],
-										"img/box/9x9/normal/" + sudokuBoard[i][j] + ".png");
-							}
-						}
-						isSolved = true;
-					} else {
-						exit(8); // Show error: no solution found
-					}
-				} catch (Exception ex) {
-					ex.printStackTrace();
-				}
+				game.setVisible(false);
+				status.setVisible(false);
+				game.solve.setEnabled(false);
+				solve();
+				game.solve.setEnabled(true);
 			}
 		});
-
 		game.help.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				help(5);
@@ -511,9 +483,6 @@ public class SudokuBee2 extends Thread {
 			PrintResult printer = new PrintResult("results/.xls");
 			int[][][] sudoku = board.getSudokuArray();
 
-			// --- Start timing ---
-			long startTime = System.currentTimeMillis();
-
 			ABC abc = new ABC(printer, sudoku, numEmp, numOnlook, numCycle);
 			Animation animate = new Animation(sudoku, GP.special);
 
@@ -526,26 +495,13 @@ public class SudokuBee2 extends Thread {
 			abc.start();
 			delay(100);
 
-			// Wait for ABC to finish while updating animation
 			while (!abc.isDone()) {
 				delay(100);
 				animate.changePic(abc.getBestSolution());
 			}
 
-			long endTime = System.currentTimeMillis();
-			double elapsedSeconds = (endTime - startTime) / 1000.0;
-			int maxCyclesExecuted = abc.getCurrentCycle(); // Added getter in ABC class
-
-			System.out.println("Elapsed time (seconds): " + elapsedSeconds);
-			System.out.println("Maximum cycles executed: " + maxCyclesExecuted);
-
 			animate.decompose();
 			animate = null;
-
-			// --- Save original puzzle and solution ---
-			SaveSudoku saver = new SaveSudoku();
-			saver.save("original_" + saveFileName, sudoku);
-			saver.save("solution_" + saveFileName, abc.getBestSolution());
 
 			// Generate new Sudoku or use ABC solution
 			if (generate) {
