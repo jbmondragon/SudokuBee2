@@ -38,47 +38,49 @@ public class SudokuBee2 extends Thread {
 
 	// Constructor for SudokuBee
 	SudokuBee2() {
-    	frame.setTitle(" Sudoku Bee");
-    	snd = new Tunog("snd/1.mid");
-    	error = new Tunog("snd/error.wav");
-    	snd.loop();
-    	menu();
-    	options();
-    
-    	// Start the generation thread
-    	this.start();
-    
-    	frame.setVisible(true);
-    	frame.setSize(800, 625);
-    	frame.setLocationRelativeTo(null);
-    	frame.setResizable(false);
-    	frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setTitle(" Sudoku Bee");
+		snd = new Tunog("snd/1.mid");
+		error = new Tunog("snd/error.wav");
+		snd.loop();
+		menu();
+		options();
+
+		generateTestInstances();
+
+		// Start the generation thread
+		this.start();
+
+		frame.setVisible(true);
+		frame.setSize(800, 625);
+		frame.setLocationRelativeTo(null);
+		frame.setResizable(false);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 
 	// Show Menu
 	private void menu() {
 		GP = new generalPanel(container);
 		GP.play.addActionListener(new ActionListener() {
-    		public void actionPerformed(ActionEvent e) {
-        		mainGame();
-        		status("");
-        		isAns = true;
-        		int size = options.getBoardSize();
-        		board(new int[size][size][2], true);
-        		numEmp = 100;
-        		numOnlook = 200;
-        		numCycle = 100000000;
-        		generate = true;
-        		gameMode = true;
-        		isSolved = false;
-        
-        		// Ensure thread is alive and trigger generation
-        		if (!isAlive()) {
-            		start();
-        		}
-        	triggerGeneration();
-        	popUp(size);
-    		}
+			public void actionPerformed(ActionEvent e) {
+				mainGame();
+				status("");
+				isAns = true;
+				int size = options.getBoardSize();
+				board(new int[size][size][2], true);
+				numEmp = 100;
+				numOnlook = 200;
+				numCycle = 100000000;
+				generate = true;
+				gameMode = true;
+				isSolved = false;
+
+				// Ensure thread is alive and trigger generation
+				if (!isAlive()) {
+					start();
+				}
+				triggerGeneration();
+				popUp(size);
+			}
 		});
 		GP.open.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -187,11 +189,11 @@ public class SudokuBee2 extends Thread {
 						@Override
 						public void mouseClicked(MouseEvent e) {
 							// Changed .getModifiers() to .getButton() since it is deprecated
-							if (!isSolved && e.getButton() == MouseEvent.BUTTON3) {
-								pop.setVisible(true, x, y, board.getValue(x, y));
-								status.setVisible(false);
-								game.setVisible(false);
-							}
+							if (board.getStatus(x, y) == 0)
+								return; // skip given cell
+							pop.setVisible(true, x, y, board.getValue(x, y));
+							status.setVisible(false);
+							game.setVisible(false);
 						}
 					});
 				}
@@ -444,97 +446,101 @@ public class SudokuBee2 extends Thread {
 	// The main run loop that handles the puzzle-solving process and game state
 	// transitions
 	@Override
-public void run() {
-    while (true) {
-        // Wait until a new generation is triggered
-        synchronized (generationLock) {
-            try {
-                while (!startGeneration) {
-                    generationLock.wait();
-                }
-                startGeneration = false; // Reset the flag
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                break; // Exit if interrupted
-            }
-        }
+	public void run() {
+		while (true) {
+			// Wait until a new generation is triggered
+			synchronized (generationLock) {
+				try {
+					while (!startGeneration) {
+						generationLock.wait();
+					}
+					startGeneration = false; // Reset the flag
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					break; // Exit if interrupted
+				}
+			}
 
-        // Check if we should stop the thread
-        if (Thread.currentThread().isInterrupted()) {
-            break;
-        }
+			// Check if we should stop the thread
+			if (Thread.currentThread().isInterrupted()) {
+				break;
+			}
 
-        // --- Begin Sudoku generation logic ---
-        executeSudokuGeneration();
-        // --- End Sudoku generation logic ---
-    }
-}
+			// --- Begin Sudoku generation logic ---
+			executeSudokuGeneration();
+			// --- End Sudoku generation logic ---
+		}
+	}
 
-private void executeSudokuGeneration() {
-    if (game != null) game.setVisible(1);
-    if (status != null) status.setVisible(false);
+	private void executeSudokuGeneration() {
+		if (game != null)
+			game.setVisible(1);
+		if (status != null)
+			status.setVisible(false);
 
-    try {
-        int size = board.getSize();
-        PrintResult printer = new PrintResult("results/.xls");
-        int[][][] sudoku = board.getSudokuArray();
+		try {
+			int size = board.getSize();
+			PrintResult printer = new PrintResult("results/.xls");
+			int[][][] sudoku = board.getSudokuArray();
 
-        ABC abc = new ABC(printer, sudoku, numEmp, numOnlook, numCycle);
-        Animation animate = new Animation(sudoku, GP.special);
+			ABC abc = new ABC(printer, sudoku, numEmp, numOnlook, numCycle);
+			Animation animate = new Animation(sudoku, GP.special);
 
-        // Remove old board from GUI
-        if (board != null) {
-            board.decompose();
-            board = null;
-        }
+			// Remove old board from GUI
+			if (board != null) {
+				board.decompose();
+				board = null;
+			}
 
-        abc.start();
-        delay(100);
+			abc.start();
+			delay(100);
 
-        while (!abc.isDone()) {
-            delay(100);
-            animate.changePic(abc.getBestSolution());
-        }
+			while (!abc.isDone()) {
+				delay(100);
+				animate.changePic(abc.getBestSolution());
+			}
 
-        animate.decompose();
-        animate = null;
+			animate.decompose();
+			animate = null;
 
-        // Generate new Sudoku or use ABC solution
-        if (generate) {
-            GenerateSudoku gen = new GenerateSudoku(abc.getBestSolution());
-            board(gen.getSudoku(), false);
-            gen = null;
-            isSolved = false;
-        } else {
-            if (abc.getFitness() == 1) {
-                exit(8);
-                board = new UIBoard(abc.getBestSolution(), GP.panel[5]);
-            } else {
-                board(abc.getBestSolution(), false);
-                isSolved = false;
-            }
-        }
+			// Generate new Sudoku or use ABC solution
+			if (generate) {
+				GenerateSudoku gen = new GenerateSudoku(abc.getBestSolution());
+				board(gen.getSudoku(), false);
+				gen = null;
+				isSolved = false;
+			} else {
+				if (abc.getFitness() == 1) {
+					exit(8);
+					board = new UIBoard(abc.getBestSolution(), GP.panel[5]);
+				} else {
+					board(abc.getBestSolution(), false);
+					isSolved = false;
+				}
+			}
 
-        abc = null;
-        printer.close();
-        printer.delete();
-        printer = null;
+			abc = null;
+			printer.close();
+			printer.delete();
+			printer = null;
 
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-    if (status != null) status.setVisible(true);
-    if (game != null) game.setVisible(0);
-}
+		if (status != null)
+			status.setVisible(true);
+		if (game != null)
+			game.setVisible(0);
+	}
 
-// Helper method to trigger the thread to start generating a new board
-private void triggerGeneration() {
-    synchronized (generationLock) {
-        startGeneration = true;
-        generationLock.notify();
-    }
-}
+	// Helper method to trigger the thread to start generating a new board
+	private void triggerGeneration() {
+		synchronized (generationLock) {
+			startGeneration = true;
+			generationLock.notify();
+		}
+	}
 
 	protected void delay(int newDelay) {
 		try {
@@ -586,6 +592,7 @@ private void triggerGeneration() {
 				game.setVisible(false);
 				status.setVisible(false);
 				isSolved = false;
+				// open(load.lists.getSelectedValue() + "");
 				loadSudoku(5);
 			}
 		});
@@ -715,31 +722,31 @@ private void triggerGeneration() {
 						pop = null;
 						GP.setVisible(7);
 					} else if (exit.num == 2) {
-    					board.decompose();
-    					board = null;
-    					game.decompose();
-    					game = null;
-    					status.decompose();
-    					status = null;
-    					pop.decompose();
-    					pop = null;
-    					mainGame();
-    					status("");
-    					isAns = true;
-    					int size = options.getBoardSize();
-    					board(new int[size][size][2], true);
-    					numEmp = 100;
-    					numOnlook = 200;
-    					numCycle = 100000000;
-    					generate = true;
-    					gameMode = true;
-    
-    					// Ensure thread is alive and trigger generation
-    					if (!isAlive()) {
-        					start();
-    					}
-    					triggerGeneration();
-    					popUp(size);
+						board.decompose();
+						board = null;
+						game.decompose();
+						game = null;
+						status.decompose();
+						status = null;
+						pop.decompose();
+						pop = null;
+						mainGame();
+						status("");
+						isAns = true;
+						int size = options.getBoardSize();
+						board(new int[size][size][2], true);
+						numEmp = 100;
+						numOnlook = 200;
+						numCycle = 100000000;
+						generate = true;
+						gameMode = true;
+
+						// Ensure thread is alive and trigger generation
+						if (!isAlive()) {
+							start();
+						}
+						triggerGeneration();
+						popUp(size);
 					} else if (exit.num == 9) {
 						GP.setVisible(5);
 						SaveSudoku saving = new SaveSudoku();
@@ -865,6 +872,52 @@ private void triggerGeneration() {
 			System.out.println();
 		}
 		System.out.println();
+	}
+
+	// Generate Sudoku test instances (from D4_Sudoku Test Instances.pdf)
+	private void generateTestInstances() {
+		File saveDir = new File("save");
+		if (!saveDir.exists()) {
+			saveDir.mkdirs();
+		}
+
+		SaveSudoku saver = new SaveSudoku();
+
+		// Puzzle names of test Instances
+		String[] puzzleNames = {
+				"sabuncu1", "sabuncu2", "sabuncu3", "sabuncu4", "sabuncu5", "sabuncu6",
+				"sabuncu7", "sabuncu8", "sabuncu9", "sabuncu10",
+				"aiescargot", "platinumblond", "goldennugget",
+				"reddrawf", "coly013", "tarx0134"
+		};
+
+		for (String name : puzzleNames) {
+			File testFile = new File("save/" + name + ".sav");
+			if (!testFile.exists()) {
+				try {
+					int size = 9; // All puzzles are standard 9x9 Sudokus
+					RandomSudokuGenerator gen = new RandomSudokuGenerator(size);
+
+					// 10% of cells given, start from an empty board
+					int[][][] sudoku = gen.generate(10.0, true, null);
+
+					if (sudoku != null) {
+						int result = saver.save(name, sudoku);
+						if (result == 0)
+							System.out.println("Test instance generated: " + name + ".sav");
+						else
+							System.out.println("Failed to save: " + name + ".sav");
+					} else {
+						System.out.println("Failed to generate puzzle for: " + name);
+					}
+
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else {
+				System.out.println("Skipped existing file: " + name + ".sav");
+			}
+		}
 	}
 
 	public static void main(String args[]) {

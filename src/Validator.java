@@ -40,24 +40,35 @@ class Validator {
 			hor.clear();
 			ver.clear();
 			sub.clear();
+
+			// Check subgrid
 			for (int y = subgrid[ctr].getStartY(), limY = y + subgrid[ctr].getDimY(); y < limY; y++) {
 				for (int x = subgrid[ctr].getStartX(), limX = x + subgrid[ctr].getDimX(); x < limX; x++) {
-					if (grid[y][x][1] == 0 && sub.contains(grid[y][x][0])) {
-						return false;
-					} else if (grid[y][x][1] == 0) {
-						sub.add((grid[y][x][0]));
+					int val = grid[y][x][0];
+					if (val != 0) { // ✅ ignore empty cells
+						if (sub.contains(val))
+							return false;
+						sub.add(val);
 					}
 				}
 			}
+
+			// Check rows and columns
 			for (int ct = 0; ct < grid.length; ct++) {
-				if (grid[ctr][ct][1] == 0 && hor.contains(grid[ctr][ct][0])) {
-					return false;
-				} else if (grid[ctr][ct][1] == 0)
-					hor.add((grid[ctr][ct][0]));
-				if (grid[ct][ctr][1] == 0 && ver.contains(grid[ct][ctr][0])) {
-					return false;
-				} else if (grid[ct][ctr][1] == 0)
-					ver.add((grid[ct][ctr][0]));
+				int rowVal = grid[ctr][ct][0];
+				int colVal = grid[ct][ctr][0];
+
+				if (rowVal != 0) {
+					if (hor.contains(rowVal))
+						return false;
+					hor.add(rowVal);
+				}
+
+				if (colVal != 0) {
+					if (ver.contains(colVal))
+						return false;
+					ver.add(colVal);
+				}
 			}
 		}
 		return true;
