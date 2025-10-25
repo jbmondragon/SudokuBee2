@@ -30,7 +30,7 @@ public class RandomSudokuGenerator {
 
         int existingGiven = countGiven(sudoku);
         if (existingGiven > numGivenCells) {
-            System.out.println("⚠ Too many given cells (" + existingGiven + " > " + numGivenCells + ")");
+            System.out.println("Too many given cells (" + existingGiven + " > " + numGivenCells + ")");
             return null; // invalid input
         }
 
@@ -48,11 +48,11 @@ public class RandomSudokuGenerator {
         }
 
         if (!validateFullBoard(sudoku)) {
-            System.out.println("❌ Generated board invalid! Regenerating...");
+            System.out.println("Generated board invalid! Regenerating...");
             return generate(givenPercentage, startEmpty, userBoard);
         }
 
-        System.out.println("✅ Random Sudoku generated (" + numGivenCells + " givens)");
+        System.out.println("Random Sudoku generated (" + numGivenCells + " givens)");
         return sudoku;
     }
 

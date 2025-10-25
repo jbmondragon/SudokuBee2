@@ -355,13 +355,41 @@ public class SudokuBee2 extends Thread {
 		});
 		game.solve.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				game.setVisible(false);
-				status.setVisible(false);
-				game.solve.setEnabled(false);
-				solve();
-				game.solve.setEnabled(true);
+				try {
+					int size = board.getSize();
+					if (size != 9) {
+						exit(8); // Only standard 9x9 Sudoku supported
+						return;
+					}
+
+					// Convert 3D board array to 2D
+					int[][] sudokuBoard = new int[9][9];
+					int[][][] guiBoard = board.getSudokuArray();
+					for (int i = 0; i < 9; i++)
+						for (int j = 0; j < 9; j++)
+							sudokuBoard[i][j] = guiBoard[i][j][0]; // [0] is value
+
+					// Solve
+					SudokuSolver solver = new SudokuSolver();
+					if (solver.solve(sudokuBoard)) {
+						// Update GUI
+						for (int i = 0; i < 9; i++) {
+							for (int j = 0; j < 9; j++) {
+								board.setSudokuArray(sudokuBoard[i][j], true, i, j);
+								GP.changePicture(board.btn[i][j],
+										"img/box/9x9/normal/" + sudokuBoard[i][j] + ".png");
+							}
+						}
+						isSolved = true;
+					} else {
+						exit(8); // Show error: no solution found
+					}
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
 			}
 		});
+
 		game.help.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				help(5);
