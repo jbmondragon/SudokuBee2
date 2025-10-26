@@ -13,17 +13,19 @@ class Bee {
 	Bee(int[][][] prob, Subgrid[] subgrid) {
 		solution = prob;
 		this.subgrid = subgrid;
+
 		for (int ctr = 0; ctr < subgrid.length; ctr++) {
 			int[] needed = neededNumbers(subgrid[ctr]);
 			for (int y = subgrid[ctr].getStartY(), indexRand = needed.length,
 					limY = y + subgrid[ctr].getDimY(); y < limY; y++) {
 				for (int x = subgrid[ctr].getStartX(), limX = x + subgrid[ctr].getDimX(); x < limX; x++) {
-					if (solution[y][x][1] == 1) {
+					if (solution[y][x][1] == 1 && indexRand > 0) {
 						int tmp = rand.nextInt(indexRand);
 						solution[y][x][0] = needed[tmp];
+						// Swap used number to the end of array
 						needed[tmp] = needed[indexRand - 1];
 						needed[indexRand - 1] = solution[y][x][0];
-						indexRand = indexRand - 1;
+						indexRand--;
 					}
 				}
 			}
@@ -203,25 +205,34 @@ class Bee {
 	}
 
 	protected int[] neededNumbers(Subgrid grid) {
-		int[] needed = new int[solution.length];
-		int removed = 0;
-		for (int ctr = 1; ctr <= solution.length; ctr++)
-			needed[ctr - 1] = ctr;
+		int size = solution.length;
+		boolean[] used = new boolean[size + 1]; // Tracks which numbers are already in the subgrid
+
+		// Mark numbers that are already filled in the subgrid
 		for (int y = grid.getStartY(), limY = y + grid.getDimY(); y < limY; y++) {
 			for (int x = grid.getStartX(), limX = x + grid.getDimX(); x < limX; x++) {
-				if (solution[y][x][1] == 0) {
-					needed[solution[y][x][0] - 1] = 0;
-					removed = removed + 1;
+				int val = solution[y][x][0];
+				if (solution[y][x][1] == 0 && val > 0 && val <= size) {
+					used[val] = true; // mark as used
 				}
 			}
 		}
-		int[] neededNum = new int[solution.length - removed];
-		for (int ctr = 0, ctr2 = 0; ctr < solution.length; ctr++) {
-			if (needed[ctr] > 0) {
-				neededNum[ctr2] = needed[ctr];
-				ctr2 = ctr2 + 1;
+
+		// Count how many numbers are needed
+		int neededCount = 0;
+		for (int i = 1; i <= size; i++) {
+			if (!used[i])
+				neededCount++;
+		}
+
+		// Fill the array with missing numbers
+		int[] neededNum = new int[neededCount];
+		for (int i = 1, index = 0; i <= size; i++) {
+			if (!used[i]) {
+				neededNum[index++] = i;
 			}
 		}
+
 		return neededNum;
 	}
 

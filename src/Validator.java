@@ -78,30 +78,44 @@ class Validator {
 		customSet hor = new customSet();
 		customSet ver = new customSet();
 		customSet sub = new customSet();
+
 		for (int ctr = 0; ctr < grid.length; ctr++) {
 			hor.clear();
 			ver.clear();
 			sub.clear();
+
+			// Check subgrid
 			for (int y = subgrid[ctr].getStartY(), limY = y + subgrid[ctr].getDimY(); y < limY; y++) {
 				for (int x = subgrid[ctr].getStartX(), limX = x + subgrid[ctr].getDimX(); x < limX; x++) {
-					if (sub.contains(grid[y][x][0])) {
-						return false;
-					} else {
-						sub.add((grid[y][x][0]));
+					int val = grid[y][x][0];
+					if (val != 0) {
+						if (sub.contains(val))
+							return false;
+						sub.add(val);
 					}
 				}
 			}
+
+			// Check rows and columns
 			for (int ct = 0; ct < grid.length; ct++) {
-				if (hor.contains(grid[ctr][ct][0])) {
-					return false;
-				} else
-					hor.add((grid[ctr][ct][0]));
-				if (ver.contains(grid[ct][ctr][0])) {
-					return false;
-				} else
-					ver.add((grid[ct][ctr][0]));
+				int rowVal = grid[ctr][ct][0];
+				int colVal = grid[ct][ctr][0];
+
+				if (rowVal != 0) {
+					if (hor.contains(rowVal))
+						return false;
+					hor.add(rowVal);
+				}
+
+				if (colVal != 0) {
+					if (ver.contains(colVal))
+						return false;
+					ver.add(colVal);
+				}
 			}
 		}
+
 		return true;
 	}
+
 }

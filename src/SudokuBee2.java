@@ -154,18 +154,37 @@ public class SudokuBee2 extends Thread {
 	// Open and load the selected Sudoku puzzle
 	private void open(String str) {
 		LoadSudoku sod = new LoadSudoku("save/" + str + ".sav");
+
 		if (sod.getStatus()) {
-			board.decompose();
+			if (board != null)
+				board.decompose();
 			try {
-				game.decompose();
+				if (game != null)
+					game.decompose();
 			} catch (Exception e) {
 			}
+
 			mainGame();
 			status("");
 			isAns = true;
+
+			int[][][] arr = sod.getArray();
+			int size = arr.length;
+			for (int row = 0; row < size; row++) {
+				for (int col = 0; col < size; col++) {
+					if (arr[row][col][0] != 0) {
+						arr[row][col][1] = 0;
+					} else {
+						arr[row][col][1] = 1;
+					}
+				}
+			}
+
 			board = null;
-			board(sod.getArray(), false);
-			popUp(sod.getSize());
+			board(arr, false);
+
+			popUp(size);
+
 		} else {
 			exit(3);
 		}
@@ -176,11 +195,9 @@ public class SudokuBee2 extends Thread {
 	private void board(int sudokuArray[][][], boolean isNull) {
 		GP.setVisible(5);
 
-		// Only create new board if we don't have one or we're generating
 		if (board == null || generate) {
 			board = new UIBoard(sudokuArray, isNull, GP.panel[5]);
 		} else {
-			// For solve mode, just update the existing board
 			board.setSudoku(sudokuArray);
 		}
 
@@ -195,11 +212,9 @@ public class SudokuBee2 extends Thread {
 					board.btn[btnX][btnY].removeMouseListener(ml);
 				}
 
-				// Add new mouse listener
 				board.btn[btnX][btnY].addMouseListener(new MouseAdapter() {
 					@Override
 					public void mouseClicked(MouseEvent e) {
-						// Support both left and right click on empty cells
 						if ((e.getButton() == MouseEvent.BUTTON3 ||
 								(e.getButton() == MouseEvent.BUTTON1 && board.getValue(x, y) == 0))
 								&& !isSolved) {
@@ -374,7 +389,6 @@ public class SudokuBee2 extends Thread {
 				game.solve.setEnabled(true);
 			}
 		});
-
 		game.help.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				help(5);
@@ -406,7 +420,6 @@ public class SudokuBee2 extends Thread {
 
 	private void solve() {
 		solve = new UISolve(GP.solve);
-
 		solve.cancel.addActionListener(e -> {
 			status.setVisible(true);
 			game.setVisible(true);
@@ -416,7 +429,6 @@ public class SudokuBee2 extends Thread {
 		});
 
 		solve.mode.addActionListener(e -> solve.changeMode());
-
 		solve.solve.addActionListener(e -> {
 			try {
 				// Read parameters from the UISolve fields
