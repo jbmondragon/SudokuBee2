@@ -110,20 +110,70 @@ public class UIBoard{
 			}
 		}
 	protected void setSudoku(int solution[][][]){
-		sudokuArray=solution;
+		sudokuArray = solution;
+		
+		// Update visual representation for all cells
+		if (sudokuArray == null || btn == null) return;
+		
+		int size = sudokuArray.length;
+		for (int row = 0; row < size; row++) {
+			for (int col = 0; col < size; col++) {
+				int value = sudokuArray[row][col][0];
+				int status = sudokuArray[row][col][1];
+				
+				String img = (status == 0) ? "given" : "normal";
+				String imagePath = "img/box/" + size + "x" + size + "/" + img + "/" + value + ".png";
+				
+				if (btn[row][col] != null) {
+					javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imagePath);
+					btn[row][col].setIcon(icon);
+					
+					if (status == 1) {
+						btn[row][col].setCursor(new Cursor(Cursor.HAND_CURSOR));
+					} else {
+						btn[row][col].setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+					}
+				}
+			}
 		}
+		
+		// Refresh the display
+		if (pane != null) {
+			pane.revalidate();
+			pane.repaint();
+		}
+	}
 	protected void setSudokuArray(int value, boolean isAns, int x, int y){
 		if(sudokuArray[x][y][0]==0 && value!=0)
 			ans++;
 		if(sudokuArray[x][y][0]!=0 && value==0)
 			ans--;
+		
 		sudokuArray[x][y][0]=value;
 		int num=1;
 		if(!isAns && value!=0)
 			num=0;
 		sudokuArray[x][y][1]=num;
-		sudokuArray[x][y][0]=value;
+		
+		// Update visual representation for this specific cell
+		String img = (num == 0) ? "given" : "normal";
+		String imagePath = "img/box/" + size + "x" + size + "/" + img + "/" + value + ".png";
+		
+		if (btn[x][y] != null) {
+			javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imagePath);
+			btn[x][y].setIcon(icon);
+			
+			if (num == 1) {
+				btn[x][y].setCursor(new Cursor(Cursor.HAND_CURSOR));
+			} else {
+				btn[x][y].setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+			}
+			
+			// Refresh the button
+			btn[x][y].revalidate();
+			btn[x][y].repaint();
 		}
+	}
 	protected int getValue(int x, int y){
 		return sudokuArray[x][y][0];
 		}
