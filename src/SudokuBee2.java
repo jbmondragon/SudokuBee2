@@ -32,6 +32,7 @@ public class SudokuBee2 extends Thread {
 	private String saveFileName = "";
 	private final Object generationLock = new Object();
 	private boolean startGeneration = false;
+	public static int penaltyType = 0;
 
 	// Constructor
 	SudokuBee2() {
@@ -959,6 +960,26 @@ public class SudokuBee2 extends Thread {
 		options.right[2].addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				options.setPenalty(true);
+			}
+		});
+
+		options.exit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					game.setVisible(true);
+					status.setVisible(true);
+				} catch (Exception ee) {
+				}
+
+				GP.setVisibleButton(true);
+
+				// 🟡 Save the penalty selection from UIOptions
+				SudokuBee2.penaltyType = options.getPenaltyType();
+
+				if (options.num == 0)
+					GP.setVisible(7);
+				else
+					GP.setVisible(5);
 			}
 		});
 

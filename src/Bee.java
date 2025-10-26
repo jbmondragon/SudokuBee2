@@ -54,8 +54,6 @@ class Bee {
 				if (hor.contains(solution[ctr][ct][0]))
 					penalty++;
 				else
-					// Deprecated, latest Java automatically converts the primitive int to an
-					// Integer object (autoboxing)
 					hor.add((solution[ctr][ct][0]));
 				if (ver.contains(solution[ct][ctr][0]))
 					penalty++;
@@ -64,6 +62,125 @@ class Bee {
 			}
 		}
 		return penalty;
+	}
+
+	public double evaluate(int[][][] sudoku) {
+		double fitness = 0.0;
+
+		switch (SudokuBee2.penaltyType) {
+			case 0:
+				// System.out.println("Using penalty: Missing numbers with sub-grid
+				// constraint");
+				fitness = missingNumbersPenalty(sudoku, true);
+				break;
+			case 1:
+				// System.out.println("Using penalty: Sum-Product with sub-grid constraint");
+				fitness = sumProductPenalty(sudoku, true);
+				break;
+			case 2:
+				// System.out.println("Using penalty: Sum-Product without sub-grid constraint");
+				fitness = sumProductPenalty(sudoku, false);
+				break;
+			default:
+				// System.out.println("Using default penalty: Missing numbers");
+				fitness = missingNumbersPenalty(sudoku, true);
+		}
+
+		return fitness;
+	}
+
+	private double missingNumbersPenalty(int[][][] sudoku, boolean subgridConstraint) {
+		int penalty = 0;
+		int size = sudoku.length;
+
+		// Row & Column constraint
+		for (int i = 0; i < size; i++) {
+			boolean[] rowSeen = new boolean[size + 1];
+			boolean[] colSeen = new boolean[size + 1];
+			for (int j = 0; j < size; j++) {
+				int rowVal = sudoku[i][j][0];
+				int colVal = sudoku[j][i][0];
+				if (rowVal != 0 && rowSeen[rowVal])
+					penalty++;
+				if (colVal != 0 && colSeen[colVal])
+					penalty++;
+				rowSeen[rowVal] = true;
+				colSeen[colVal] = true;
+			}
+		}
+
+		// Sub-grid constraint if enabled
+		if (subgridConstraint) {
+			int sub = (int) Math.sqrt(size);
+			for (int boxRow = 0; boxRow < sub; boxRow++) {
+				for (int boxCol = 0; boxCol < sub; boxCol++) {
+					boolean[] boxSeen = new boolean[size + 1];
+					for (int r = 0; r < sub; r++) {
+						for (int c = 0; c < sub; c++) {
+							int val = sudoku[boxRow * sub + r][boxCol * sub + c][0];
+							if (val != 0 && boxSeen[val])
+								penalty++;
+							boxSeen[val] = true;
+						}
+					}
+				}
+			}
+		}
+
+		return 1.0 / (1.0 + penalty);
+	}
+
+	private double sumProductPenalty(int[][][] sudoku, boolean subgridConstraint) {
+		int size = sudoku.length;
+		int idealSum = (size * (size + 1)) / 2;
+		int idealProduct = 1;
+		for (int i = 1; i <= size; i++)
+			idealProduct *= i;
+
+		double penalty = 0;
+
+		// Row and column penalties
+		for (int i = 0; i < size; i++) {
+			int rowSum = 0, colSum = 0;
+			int rowProd = 1, colProd = 1;
+
+			for (int j = 0; j < size; j++) {
+				int rowVal = sudoku[i][j][0];
+				int colVal = sudoku[j][i][0];
+
+				rowSum += rowVal;
+				colSum += colVal;
+
+				rowProd *= (rowVal == 0 ? 1 : rowVal);
+				colProd *= (colVal == 0 ? 1 : colVal);
+			}
+
+			penalty += Math.abs(idealSum - rowSum) + Math.abs(idealSum - colSum);
+			penalty += Math.abs(idealProduct - rowProd) + Math.abs(idealProduct - colProd);
+		}
+
+		// Subgrid penalty if enabled
+		if (subgridConstraint) {
+			int sub = (int) Math.sqrt(size);
+			for (int boxRow = 0; boxRow < sub; boxRow++) {
+				for (int boxCol = 0; boxCol < sub; boxCol++) {
+					int gridSum = 0;
+					int gridProd = 1;
+
+					for (int r = 0; r < sub; r++) {
+						for (int c = 0; c < sub; c++) {
+							int val = sudoku[boxRow * sub + r][boxCol * sub + c][0];
+							gridSum += val;
+							gridProd *= (val == 0 ? 1 : val);
+						}
+					}
+
+					penalty += Math.abs(idealSum - gridSum) + Math.abs(idealProduct - gridProd);
+				}
+			}
+		}
+
+		return 1.0 / (1.0 + penalty);
 	}
 
 	protected int[][][] getSolution() {

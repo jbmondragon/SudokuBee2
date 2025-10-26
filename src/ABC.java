@@ -10,7 +10,6 @@ class ABC extends Thread {
 	private Bee bestBee;
 	private Subgrid[] subgrid;
 	private Random rand = new Random();
-	private Fitness fit = new Fitness();
 	private String information = "";
 	private GreedySelection greedy = new GreedySelection();
 	private PrintResult printer;
@@ -116,11 +115,16 @@ class ABC extends Thread {
 		bestBee = new Bee(subgrid);
 		for (int ctr = 0; ctr < employedSize; ctr++) {
 			bee[ctr] = new Bee(getProblemCopy(), subgrid);
-			bee[ctr].setFitness(fit.calculateFitness(bee[ctr].getPenaltyValue()));
+			double fitnessValue = bee[ctr].evaluate(bee[ctr].getSolution());
+			bee[ctr].setFitness(fitnessValue);
+
+			// For Debugging Purposes
+			System.out.println("Bee " + ctr + " initialized | penaltyType = " + SudokuBee2.penaltyType
+					+ " | fitness = " + fitnessValue);
+
 		}
 		bestBee.copyProblem(bee[0].getCopy());
 		bestBee.setFitness(bee[0].getFitness());
-		// array of empty cells
 		emptyCell = new int[numCell][3];
 		maxEmptyCell = 0;
 		for (int ctr = 0; ctr < problem.length; ctr++) {
