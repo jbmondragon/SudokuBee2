@@ -1,4 +1,6 @@
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyListener;
@@ -36,7 +38,7 @@ public class SudokuBee2 extends Thread {
 	private final Object generationLock = new Object();
 	private boolean startGeneration = false;
 
-	// Constructor for SudokuBee
+	// Constructor
 	SudokuBee2() {
 		frame.setTitle(" Sudoku Bee");
 		snd = new Tunog("snd/1.mid");
@@ -74,7 +76,6 @@ public class SudokuBee2 extends Thread {
 				gameMode = true;
 				isSolved = false;
 
-				// Ensure thread is alive and trigger generation
 				if (!isAlive()) {
 					start();
 				}
@@ -188,9 +189,8 @@ public class SudokuBee2 extends Thread {
 					board.btn[btnX][btnY].addMouseListener(new MouseAdapter() {
 						@Override
 						public void mouseClicked(MouseEvent e) {
-							// Changed .getModifiers() to .getButton() since it is deprecated
 							if (board.getStatus(x, y) == 0)
-								return; // skip given cell
+								return;
 							pop.setVisible(true, x, y, board.getValue(x, y));
 							status.setVisible(false);
 							game.setVisible(false);
@@ -239,7 +239,6 @@ public class SudokuBee2 extends Thread {
 			});
 		}
 		pop.field.addKeyListener(new KeyListener() {
-
 			public void keyReleased(KeyEvent eee) {
 				String str = pop.field.getText();
 				if (str.length() > 2 || !(eee.getKeyCode() > 47 && eee.getKeyCode() < 58
@@ -355,6 +354,7 @@ public class SudokuBee2 extends Thread {
 		});
 		game.solve.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				System.out.println("Solve button clicked!");
 				game.setVisible(false);
 				status.setVisible(false);
 				game.solve.setEnabled(false);
@@ -362,6 +362,7 @@ public class SudokuBee2 extends Thread {
 				game.solve.setEnabled(true);
 			}
 		});
+
 		game.help.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				help(5);
@@ -393,79 +394,61 @@ public class SudokuBee2 extends Thread {
 
 	private void solve() {
 		solve = new UISolve(GP.solve);
-		solve.cancel.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				status.setVisible(true);
-				game.setVisible(true);
-				solve.decompose();
-				solve = null;
-				GP.setVisible(5);
-			}
+
+		solve.cancel.addActionListener(e -> {
+			status.setVisible(true);
+			game.setVisible(true);
+			solve.decompose();
+			solve = null;
+			GP.setVisible(5);
 		});
 
-		solve.mode.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				solve.changeMode();
-			}
-		});
+		solve.mode.addActionListener(e -> solve.changeMode());
 
-		// When the user clicks the "Solve" button, it retrieves the user-defined
-		// parameters for the puzzle-solving process and initiates the solving
-		// algorithm.
-		solve.solve.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				status.setVisible(false);
-				try {
-					numEmp = Integer.parseInt(solve.numEmployed.getText());
-					numOnlook = Integer.parseInt(solve.numOnlook.getText());
-					numCycle = Integer.parseInt(solve.numCycles.getText());
-					generate = false;
-					status.setVisible(false);
-					if (numEmp >= numOnlook || numEmp < 2)
-						throw new Exception();
-					if (solve.modeNum == 0)
-						gameMode = true;
-					else
-						gameMode = false;
-					try {
-						start();
-						triggerGeneration();
-					} catch (Exception ee) {
-						start = true;
-					}
-				} catch (Exception ee) {
+		solve.solve.addActionListener(e -> {
+			try {
+				// Read parameters from the UISolve fields
+				numEmp = Integer.parseInt(solve.numEmployed.getText());
+				numOnlook = Integer.parseInt(solve.numOnlook.getText());
+				numCycle = Integer.parseInt(solve.numCycles.getText());
+
+				if (numEmp >= numOnlook || numEmp < 2) {
+					throw new Exception("Invalid parameters");
+				}
+
+				generate = false;
+				gameMode = solve.modeNum == 0;
+
+				triggerGeneration();
+
+			} catch (Exception ex) {
+				SwingUtilities.invokeLater(() -> {
 					solve.decompose();
 					solve = null;
 					GP.setVisible(5);
 					exit(7);
-				}
+				});
 			}
 		});
 	}
 
-	// The main run loop that handles the puzzle-solving process and game state
-	// transitions
 	@Override
 	public void run() {
 		while (true) {
-			// Wait until a new generation is triggered
 			synchronized (generationLock) {
 				try {
 					while (!startGeneration) {
 						generationLock.wait();
 					}
-					startGeneration = false; // Reset the flag
+					startGeneration = false;
 				} catch (InterruptedException e) {
 					e.printStackTrace();
-					break; // Exit if interrupted
+					break;
 				}
 			}
-
-			// Check if we should stop the thread
 			if (Thread.currentThread().isInterrupted()) {
 				break;
 			}
-
 			// --- Begin Sudoku generation logic ---
 			executeSudokuGeneration();
 			// --- End Sudoku generation logic ---
@@ -473,8 +456,9 @@ public class SudokuBee2 extends Thread {
 	}
 
 	private void executeSudokuGeneration() {
+		System.out.println("Starting Sudoku generation/solver...");
 		if (game != null)
-			game.setVisible(1);
+			game.setVisible(true);
 		if (status != null)
 			status.setVisible(false);
 
@@ -625,10 +609,6 @@ public class SudokuBee2 extends Thread {
 				GP.setVisible(5);
 			}
 		});
-
-		// When the user clicks the "Save" button, it saves the current Sudoku puzzle to
-		// a file with the specified name, handling any errors or invalid input
-		// appropriately.
 		save.save.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				saveFileName = save.field.getText();
