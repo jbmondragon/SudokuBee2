@@ -10,6 +10,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.Container;
 import java.io.File;
+import java.io.PrintWriter;
 
 public class SudokuBee2 extends Thread {
 	private generalPanel GP;
@@ -507,6 +508,7 @@ public class SudokuBee2 extends Thread {
 			PrintResult printer = new PrintResult("results/.xls");
 			int[][][] sudoku = board.getSudokuArray();
 
+			long startTime = System.currentTimeMillis();
 			ABC abc = new ABC(printer, sudoku, numEmp, numOnlook, numCycle);
 			Animation animate = new Animation(sudoku, GP.special);
 
@@ -537,26 +539,38 @@ public class SudokuBee2 extends Thread {
 				board(gen.getSudoku(), false);
 				gen = null;
 				isSolved = false;
-				// In executeSudokuGeneration() method, replace the solve section with:
+
+				long endTime = System.currentTimeMillis();
+				double elapsedSeconds = (endTime - startTime) / 1000.0;
+
+				System.out.println("\n*************************************************");
+				System.out.println("Elapsed time (s): " + elapsedSeconds);
+				System.out.println("Maximum cycles reached: " + abc.getCurrentCycle());
+				System.out.println("Best solution fitness: " + abc.getFitness());
 			} else {
-				// For solve mode, update the existing board with the solution
+				long endTime = System.currentTimeMillis();
+				double elapsedSeconds = (endTime - startTime) / 1000.0;
+
 				int[][][] solution = abc.getBestSolution();
+				savePuzzleAndSolution("experiment_result.txt", sudoku, solution);
+
+				System.out.println("\n*************************************************");
+				System.out.println("Elapsed time (s): " + elapsedSeconds);
+				System.out.println("Maximum cycles reached: " + abc.getCurrentCycle());
+				System.out.println("Best solution fitness: " + abc.getFitness());
+
 				if (abc.getFitness() == 1) {
-					// Perfect solution found - update the board visually
 					board.setSudoku(solution);
 					isSolved = true;
 
-					// Force UI refresh
 					GP.panel[5].revalidate();
 					GP.panel[5].repaint();
 
-					exit(8); // Show success message
+					exit(8);
 				} else {
-					// Partial solution - still update the board visually
 					board.setSudoku(solution);
 					isSolved = false;
 
-					// Force UI refresh
 					GP.panel[5].revalidate();
 					GP.panel[5].repaint();
 
@@ -571,61 +585,51 @@ public class SudokuBee2 extends Thread {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			// Ensure UI is restored even if there's an error
 			if (status != null)
 				status.setVisible(true);
 			if (game != null)
 				game.setVisible(0);
 		}
 
-		// Restore UI
 		if (status != null)
 			status.setVisible(true);
 		if (game != null)
 			game.setVisible(0);
 	}
 
-	// NEW METHOD: Update the board visually with the solution
 	private void updateBoardWithSolution(int[][][] solution) {
 		if (board == null || solution == null)
 			return;
 
 		int size = board.getSize();
 
-		// Update the board data
 		board.setSudoku(solution);
 
-		// Update the visual representation for each cell
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < size; j++) {
 				int value = solution[i][j][0];
 				int status = solution[i][j][1];
 
-				// Determine the image path based on cell status
 				String imgType = (status == 0) ? "given" : "normal";
 				String imagePath = "img/box/" + size + "x" + size + "/" + imgType + "/" + value + ".png";
 
-				// Update the button icon
 				if (board.btn[i][j] != null) {
 					javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imagePath);
 					board.btn[i][j].setIcon(icon);
 
-					// Update cursor based on cell status
-					if (status == 1) { // Normal cell (editable)
+					if (status == 1) {
 						board.btn[i][j].setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-					} else { // Given cell (non-editable)
+					} else {
 						board.btn[i][j].setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 					}
 				}
 			}
 		}
 
-		// Refresh the panel to show changes
 		GP.panel[5].revalidate();
 		GP.panel[5].repaint();
 	}
 
-	// Helper method to trigger the thread to start generating a new board
 	private void triggerGeneration() {
 		synchronized (generationLock) {
 			if (!isAlive() || isInterrupted()) {
@@ -634,7 +638,6 @@ public class SudokuBee2 extends Thread {
 					start();
 				} catch (IllegalThreadStateException e) {
 					System.out.println("Thread already started, creating new one...");
-					// If thread is already started but not running, create a new one
 					Thread newThread = new Thread(this);
 					newThread.start();
 				}
@@ -700,7 +703,6 @@ public class SudokuBee2 extends Thread {
 				game.setVisible(false);
 				status.setVisible(false);
 				isSolved = false;
-				// open(load.lists.getSelectedValue() + "");
 				loadSudoku(5);
 			}
 		});
@@ -1052,6 +1054,30 @@ public class SudokuBee2 extends Thread {
 			} else {
 				System.out.println("Skipped existing file: " + name + ".sav");
 			}
+		}
+	}
+
+	private void savePuzzleAndSolution(String filename, int[][][] puzzle, int[][][] solution) {
+		try (PrintWriter pw = new PrintWriter(filename)) {
+			pw.println("Original Puzzle:");
+			for (int i = 0; i < puzzle.length; i++) {
+				for (int j = 0; j < puzzle.length; j++) {
+					pw.print(puzzle[i][j][0] + " ");
+				}
+				pw.println();
+			}
+
+			pw.println("\nSolution:");
+			for (int i = 0; i < solution.length; i++) {
+				for (int j = 0; j < solution.length; j++) {
+					pw.print(solution[i][j][0] + " ");
+				}
+				pw.println();
+			}
+
+			System.out.println("Puzzle and solution saved to " + filename);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
