@@ -1,1 +1,5 @@
-public void SudokuSolver{}
+public class SudokuSolver {
+
+    public SudokuSolver() {
+    }
+}

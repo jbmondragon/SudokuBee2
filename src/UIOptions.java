@@ -6,65 +6,91 @@ public class UIOptions extends generalPanel {
 	private JPanel panel[];
 	private JLabel bg;
 
-	// Image paths for board size options
-	private String size[] = { "img\\exit\\size\\9x9.png",
-			"img\\exit\\size\\16x16.png",
-			"img\\exit\\size\\25x25.png" };
-	private String sound[] = { "img\\exit\\sound\\on.png", "img\\exit\\sound\\off.png" };
+	private String size[] = {
+			"img/exit/size/9x9.png",
+			"img/exit/size/16x16.png",
+			"img/exit/size/25x25.png"
+	};
+	private String sound[] = {
+			"img/exit/sound/on.png",
+			"img/exit/sound/off.png"
+	};
+	private String penalty[] = {
+			"img/exit/penalty/missing.png",
+			"img/exit/penalty/sum_in.png",
+			"img/exit/penalty/sum_out.png"
+	};
 
-	protected JLabel sizeLabel, levelLabel, soundLabel;
+	protected JLabel sizeLabel, levelLabel, soundLabel, penaltyLabel;
 	protected JButton exit, no;
-	protected JButton left[] = new JButton[2];
-	protected JButton right[] = new JButton[2];
+	protected JButton left[] = new JButton[3];
+	protected JButton right[] = new JButton[3];
 
-	protected int sz, lvl, snd, num;
+	protected int sz, lvl, snd, pty, num;
 
-	// Valid board sizes
 	protected int[] boardSizes = { 9, 16, 25 };
 
 	UIOptions(JPanel panel[]) {
 		this.panel = panel;
 		panel[1].setOpaque(true);
 
-		exit = addButton(panel[1], "img/exit/okay.png", "img/exit/h_okay.png", 385, 401);
+		exit = addButton(panel[1], "img/exit/okay.png", "img/exit/h_okay.png", 360, 401);
 
-		for (int ctr = 0; ctr < 2; ctr++) {
-			left[ctr] = addButton(panel[1], "img/exit/left.png", "img/exit/h_left.png", 356, 235 + 70 * ctr);
-			right[ctr] = addButton(panel[1], "img/exit/h_right.png", "img/exit/h_right.png", 568, 235 + 70 * ctr);
+		int[] labelY = { 203, 266, 333 }; // label Y positions
+
+		for (int ctr = 0; ctr < 3; ctr++) {
+			left[ctr] = addButton(panel[1],
+					"img/exit/left.png", "img/exit/h_left.png",
+					354, labelY[ctr]); // was labelY[ctr] + 4 → now labelY[ctr]
+
+			right[ctr] = addButton(panel[1],
+					"img/exit/h_right.png", "img/exit/h_right.png",
+					566, labelY[ctr]);
 		}
 
-		// Default selected size is 9x9 (index 0)
+		// default selections
 		sz = 0;
-		num = lvl = snd = 0;
+		num = lvl = snd = pty = 0;
 
-		sizeLabel = addLabel(panel[1], size[sz], 389, 237);
-		soundLabel = addLabel(panel[1], sound[snd], 389, 308);
+		sizeLabel = addLabel(panel[1], size[sz], 389, 202);
+		soundLabel = addLabel(panel[1], sound[snd], 389, 265);
+		penaltyLabel = addLabel(panel[1], penalty[pty], 389, 332);
+
 		bg = addLabel(panel[1], "img/bg/options.png", 100, 99);
 	}
 
-	// Get the actual board size (9, 16, or 25)
+	// Existing methods
 	public int getBoardSize() {
 		return boardSizes[sz];
 	}
 
-	// Cycle the board size left or right
 	protected void setSize(boolean isRight) {
-		if (isRight) {
-			sz = (sz + 1) % boardSizes.length; // wrap around
-		} else {
-			sz = (sz - 1 + boardSizes.length) % boardSizes.length; // wrap around
-		}
+		if (isRight)
+			sz = (sz + 1) % boardSizes.length;
+		else
+			sz = (sz - 1 + boardSizes.length) % boardSizes.length;
 		changePicture(sizeLabel, size[sz]);
 	}
 
-	// Toggle sound on/off
 	protected void setSound(boolean isRight) {
-		if (isRight) {
+		if (isRight)
 			snd = (snd + 1) % 2;
-		} else {
+		else
 			snd = (snd - 1 + 2) % 2;
-		}
 		changePicture(soundLabel, sound[snd]);
+	}
+
+	// NEW: Penalty function cycling
+	protected void setPenalty(boolean isRight) {
+		if (isRight)
+			pty = (pty + 1) % penalty.length;
+		else
+			pty = (pty - 1 + penalty.length) % penalty.length;
+		changePicture(penaltyLabel, penalty[pty]);
+	}
+
+	public int getPenaltyType() {
+		return pty; // 0 = Missing, 1 = Sum-Product (with), 2 = Sum-Product (no)
 	}
 
 	protected void setVisible(boolean isVisible, int num) {
@@ -74,8 +100,10 @@ public class UIOptions extends generalPanel {
 
 	protected void decompose() {
 		panel[1].removeAll();
-		bg = sizeLabel = levelLabel = soundLabel = null;
+		bg = sizeLabel = levelLabel = soundLabel = penaltyLabel = null;
 		exit = no = null;
-		left[0] = right[0] = left[1] = right[1] = null;
+		for (int i = 0; i < 3; i++) {
+			left[i] = right[i] = null;
+		}
 	}
 }

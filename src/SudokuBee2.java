@@ -5,15 +5,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.ItemEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.Container;
-import java.awt.Desktop;
-import java.io.FileReader;
-import java.io.BufferedReader;
 import java.io.File;
 
 public class SudokuBee2 extends Thread {
@@ -31,9 +26,9 @@ public class SudokuBee2 extends Thread {
 	private int btnX, btnY;
 	private int numOnlook, numEmp, numCycle;
 	private boolean isAns = false, generate = true, start = false, gameMode = true, isSolved = false;
-	private Tunog snd, error;
-	private JFrame frame = new JFrame();
-	private Container container = frame.getContentPane();
+	private final Tunog snd, error;
+	private final JFrame frame = new JFrame();
+	private final Container container = frame.getContentPane();
 	private String saveFileName = "";
 	private final Object generationLock = new Object();
 	private boolean startGeneration = false;
@@ -178,43 +173,43 @@ public class SudokuBee2 extends Thread {
 
 	// Set up the Sudoku board with the given array and visibility status
 	private void board(int sudokuArray[][][], boolean isNull) {
-    	GP.setVisible(5);
-    
-    	// Only create new board if we don't have one or we're generating
-    	if (board == null || generate) {
-        	board = new UIBoard(sudokuArray, isNull, GP.panel[5]);
-    	} else {
-        	// For solve mode, just update the existing board
-        	board.setSudoku(sudokuArray);
-    	}
-    
-    	int size = board.getSize();
-    	for (btnX = 0; btnX < size; btnX++) {
-        	for (btnY = 0; btnY < size; btnY++) {
-            	final int x = btnX;
-            	final int y = btnY;
-            
-            	// Remove existing listeners first
-            	for (MouseListener ml : board.btn[btnX][btnY].getMouseListeners()) {
-                	board.btn[btnX][btnY].removeMouseListener(ml);
-            	}
-            
-            	// Add new mouse listener
-            	board.btn[btnX][btnY].addMouseListener(new MouseAdapter() {
-                	@Override
-                	public void mouseClicked(MouseEvent e) {
-                    	// Support both left and right click on empty cells
-                    	if ((e.getButton() == MouseEvent.BUTTON3 || 
-                        	 (e.getButton() == MouseEvent.BUTTON1 && board.getValue(x, y) == 0)) 
-                        	 && !isSolved) {
-                        	pop.setVisible(true, x, y, board.getValue(x, y));
-                        	status.setVisible(false);
-                        	game.setVisible(false);
-                    	}
-                	}
-            	});
-        	}
-    	}
+		GP.setVisible(5);
+
+		// Only create new board if we don't have one or we're generating
+		if (board == null || generate) {
+			board = new UIBoard(sudokuArray, isNull, GP.panel[5]);
+		} else {
+			// For solve mode, just update the existing board
+			board.setSudoku(sudokuArray);
+		}
+
+		int size = board.getSize();
+		for (btnX = 0; btnX < size; btnX++) {
+			for (btnY = 0; btnY < size; btnY++) {
+				final int x = btnX;
+				final int y = btnY;
+
+				// Remove existing listeners first
+				for (MouseListener ml : board.btn[btnX][btnY].getMouseListeners()) {
+					board.btn[btnX][btnY].removeMouseListener(ml);
+				}
+
+				// Add new mouse listener
+				board.btn[btnX][btnY].addMouseListener(new MouseAdapter() {
+					@Override
+					public void mouseClicked(MouseEvent e) {
+						// Support both left and right click on empty cells
+						if ((e.getButton() == MouseEvent.BUTTON3 ||
+								(e.getButton() == MouseEvent.BUTTON1 && board.getValue(x, y) == 0))
+								&& !isSolved) {
+							pop.setVisible(true, x, y, board.getValue(x, y));
+							status.setVisible(false);
+							game.setVisible(false);
+						}
+					}
+				});
+			}
+		}
 	}
 
 	// Update the Sudoku array and answer count when a cell is modified
@@ -409,225 +404,231 @@ public class SudokuBee2 extends Thread {
 	}
 
 	private void solve() {
-    	solve = new UISolve(GP.solve);
+		solve = new UISolve(GP.solve);
 
-    	solve.cancel.addActionListener(e -> {
-        	status.setVisible(true);
-        	game.setVisible(true);
-        	solve.decompose();
-        	solve = null;
-        	GP.setVisible(5);
-    	});
+		solve.cancel.addActionListener(e -> {
+			status.setVisible(true);
+			game.setVisible(true);
+			solve.decompose();
+			solve = null;
+			GP.setVisible(5);
+		});
 
-    	solve.mode.addActionListener(e -> solve.changeMode());
+		solve.mode.addActionListener(e -> solve.changeMode());
 
-    	solve.solve.addActionListener(e -> {
-        	try {
-            	// Read parameters from the UISolve fields
-            	numEmp = Integer.parseInt(solve.numEmployed.getText());
-            	numOnlook = Integer.parseInt(solve.numOnlook.getText());
-            	numCycle = Integer.parseInt(solve.numCycles.getText());
+		solve.solve.addActionListener(e -> {
+			try {
+				// Read parameters from the UISolve fields
+				numEmp = Integer.parseInt(solve.numEmployed.getText());
+				numOnlook = Integer.parseInt(solve.numOnlook.getText());
+				numCycle = Integer.parseInt(solve.numCycles.getText());
 
-            	if (numEmp >= numOnlook || numEmp < 2) {
-                	throw new Exception("Invalid parameters");
-            	}
+				if (numEmp >= numOnlook || numEmp < 2) {
+					throw new Exception("Invalid parameters");
+				}
 
-            	generate = false;
-            	gameMode = solve.modeNum == 0;
+				generate = false;
+				gameMode = solve.modeNum == 0;
 
-            	// Close the solve dialog first
-            	solve.decompose();
-            	solve = null;
-            	GP.setVisible(5);
-            
-            	// Then trigger generation in background
-            	triggerGeneration();
+				// Close the solve dialog first
+				solve.decompose();
+				solve = null;
+				GP.setVisible(5);
 
-        	} catch (Exception ex) {
-            	SwingUtilities.invokeLater(() -> {
-                	solve.decompose();
-                	solve = null;
-                	GP.setVisible(5);
-                	exit(7);
-            	});
-        	}
-    	});
+				// Then trigger generation in background
+				triggerGeneration();
+
+			} catch (Exception ex) {
+				SwingUtilities.invokeLater(() -> {
+					solve.decompose();
+					solve = null;
+					GP.setVisible(5);
+					exit(7);
+				});
+			}
+		});
 	}
 
 	@Override
 	public void run() {
-    	while (!Thread.currentThread().isInterrupted()) {
-        	synchronized (generationLock) {
-            	try {
-                	while (!startGeneration && !Thread.currentThread().isInterrupted()) {
-                    	generationLock.wait();
-                	}
-                	if (Thread.currentThread().isInterrupted()) {
-                    	break;
-                	}
-                	startGeneration = false;
-            	} catch (InterruptedException e) {
-                	System.out.println("Generation thread interrupted");
-                	Thread.currentThread().interrupt();
-                	break;
-            	}
-        	}
-        
-        	// Execute the generation/solving
-        	executeSudokuGeneration();
-    	}
-    	System.out.println("Generation thread stopped");
+		while (!Thread.currentThread().isInterrupted()) {
+			synchronized (generationLock) {
+				try {
+					while (!startGeneration && !Thread.currentThread().isInterrupted()) {
+						generationLock.wait();
+					}
+					if (Thread.currentThread().isInterrupted()) {
+						break;
+					}
+					startGeneration = false;
+				} catch (InterruptedException e) {
+					System.out.println("Generation thread interrupted");
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+
+			// Execute the generation/solving
+			executeSudokuGeneration();
+		}
+		System.out.println("Generation thread stopped");
 	}
 
-private void executeSudokuGeneration() {
-    System.out.println("Starting Sudoku generation/solver...");
-    
-    // Show solving animation if we're in solve mode
-    if (game != null) {
-        if (generate) {
-            game.setVisible(0); // Show normal game buttons for generation
-        } else {
-            game.setVisible(1); // Show solving animation for solve mode
-        }
-    }
-    
-    if (status != null) status.setVisible(false);
+	private void executeSudokuGeneration() {
+		System.out.println("Starting Sudoku generation/solver...");
 
-    try {
-        int size = board.getSize();
-        PrintResult printer = new PrintResult("results/.xls");
-        int[][][] sudoku = board.getSudokuArray();
+		// Show solving animation if we're in solve mode
+		if (game != null) {
+			if (generate) {
+				game.setVisible(0); // Show normal game buttons for generation
+			} else {
+				game.setVisible(1); // Show solving animation for solve mode
+			}
+		}
 
-        ABC abc = new ABC(printer, sudoku, numEmp, numOnlook, numCycle);
-        Animation animate = new Animation(sudoku, GP.special);
+		if (status != null)
+			status.setVisible(false);
 
-        // Remove old board from GUI only if we're generating a new puzzle
-        if (generate && board != null) {
-            board.decompose();
-            board = null;
-        }
+		try {
+			int size = board.getSize();
+			PrintResult printer = new PrintResult("results/.xls");
+			int[][][] sudoku = board.getSudokuArray();
 
-        abc.start();
-        delay(100);
+			ABC abc = new ABC(printer, sudoku, numEmp, numOnlook, numCycle);
+			Animation animate = new Animation(sudoku, GP.special);
 
-        while (!abc.isDone()) {
-            delay(100);
-            if (animate != null) {
-                animate.changePic(abc.getBestSolution());
-            }
-        }
+			// Remove old board from GUI only if we're generating a new puzzle
+			if (generate && board != null) {
+				board.decompose();
+				board = null;
+			}
 
-        if (animate != null) {
-            animate.decompose();
-            animate = null;
-        }
+			abc.start();
+			delay(100);
 
-        // Generate new Sudoku or use ABC solution
-        if (generate) {
-            GenerateSudoku gen = new GenerateSudoku(abc.getBestSolution());
-            board(gen.getSudoku(), false);
-            gen = null;
-            isSolved = false;
-        // In executeSudokuGeneration() method, replace the solve section with:
-} else {
-    // For solve mode, update the existing board with the solution
-    int[][][] solution = abc.getBestSolution();
-    if (abc.getFitness() == 1) {
-        // Perfect solution found - update the board visually
-        board.setSudoku(solution);
-        isSolved = true;
-        
-        // Force UI refresh
-        GP.panel[5].revalidate();
-        GP.panel[5].repaint();
-        
-        exit(8); // Show success message
-    } else {
-        // Partial solution - still update the board visually
-        board.setSudoku(solution);
-        isSolved = false;
-        
-        // Force UI refresh
-        GP.panel[5].revalidate();
-        GP.panel[5].repaint();
-        
-        System.out.println("Partial solution found with fitness: " + abc.getFitness());
-    }
-}
+			while (!abc.isDone()) {
+				delay(100);
+				if (animate != null) {
+					animate.changePic(abc.getBestSolution());
+				}
+			}
 
-        abc = null;
-        printer.close();
-        printer.delete();
-        printer = null;
+			if (animate != null) {
+				animate.decompose();
+				animate = null;
+			}
 
-    } catch (Exception e) {
-        e.printStackTrace();
-        // Ensure UI is restored even if there's an error
-        if (status != null) status.setVisible(true);
-        if (game != null) game.setVisible(0);
-    }
+			// Generate new Sudoku or use ABC solution
+			if (generate) {
+				GenerateSudoku gen = new GenerateSudoku(abc.getBestSolution());
+				board(gen.getSudoku(), false);
+				gen = null;
+				isSolved = false;
+				// In executeSudokuGeneration() method, replace the solve section with:
+			} else {
+				// For solve mode, update the existing board with the solution
+				int[][][] solution = abc.getBestSolution();
+				if (abc.getFitness() == 1) {
+					// Perfect solution found - update the board visually
+					board.setSudoku(solution);
+					isSolved = true;
 
-    // Restore UI
-    if (status != null) status.setVisible(true);
-    if (game != null) game.setVisible(0);
-}
+					// Force UI refresh
+					GP.panel[5].revalidate();
+					GP.panel[5].repaint();
 
-// NEW METHOD: Update the board visually with the solution
-private void updateBoardWithSolution(int[][][] solution) {
-    if (board == null || solution == null) return;
-    
-    int size = board.getSize();
-    
-    // Update the board data
-    board.setSudoku(solution);
-    
-    // Update the visual representation for each cell
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            int value = solution[i][j][0];
-            int status = solution[i][j][1];
-            
-            // Determine the image path based on cell status
-            String imgType = (status == 0) ? "given" : "normal";
-            String imagePath = "img/box/" + size + "x" + size + "/" + imgType + "/" + value + ".png";
-            
-            // Update the button icon
-            if (board.btn[i][j] != null) {
-                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imagePath);
-                board.btn[i][j].setIcon(icon);
-                
-                // Update cursor based on cell status
-                if (status == 1) { // Normal cell (editable)
-                    board.btn[i][j].setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-                } else { // Given cell (non-editable)
-                    board.btn[i][j].setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-                }
-            }
-        }
-    }
-    
-    // Refresh the panel to show changes
-    GP.panel[5].revalidate();
-    GP.panel[5].repaint();
-}
+					exit(8); // Show success message
+				} else {
+					// Partial solution - still update the board visually
+					board.setSudoku(solution);
+					isSolved = false;
+
+					// Force UI refresh
+					GP.panel[5].revalidate();
+					GP.panel[5].repaint();
+
+					System.out.println("Partial solution found with fitness: " + abc.getFitness());
+				}
+			}
+
+			abc = null;
+			printer.close();
+			printer.delete();
+			printer = null;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			// Ensure UI is restored even if there's an error
+			if (status != null)
+				status.setVisible(true);
+			if (game != null)
+				game.setVisible(0);
+		}
+
+		// Restore UI
+		if (status != null)
+			status.setVisible(true);
+		if (game != null)
+			game.setVisible(0);
+	}
+
+	// NEW METHOD: Update the board visually with the solution
+	private void updateBoardWithSolution(int[][][] solution) {
+		if (board == null || solution == null)
+			return;
+
+		int size = board.getSize();
+
+		// Update the board data
+		board.setSudoku(solution);
+
+		// Update the visual representation for each cell
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
+				int value = solution[i][j][0];
+				int status = solution[i][j][1];
+
+				// Determine the image path based on cell status
+				String imgType = (status == 0) ? "given" : "normal";
+				String imagePath = "img/box/" + size + "x" + size + "/" + imgType + "/" + value + ".png";
+
+				// Update the button icon
+				if (board.btn[i][j] != null) {
+					javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imagePath);
+					board.btn[i][j].setIcon(icon);
+
+					// Update cursor based on cell status
+					if (status == 1) { // Normal cell (editable)
+						board.btn[i][j].setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+					} else { // Given cell (non-editable)
+						board.btn[i][j].setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+					}
+				}
+			}
+		}
+
+		// Refresh the panel to show changes
+		GP.panel[5].revalidate();
+		GP.panel[5].repaint();
+	}
 
 	// Helper method to trigger the thread to start generating a new board
 	private void triggerGeneration() {
-    	synchronized (generationLock) {
-        	if (!isAlive() || isInterrupted()) {
-            	System.out.println("Thread not alive, starting new one...");
-            	try {
-                	start();
-            	} catch (IllegalThreadStateException e) {
-                	System.out.println("Thread already started, creating new one...");
-                	// If thread is already started but not running, create a new one
-                	Thread newThread = new Thread(this);
-                	newThread.start();
-            	}
-        	}
-        	startGeneration = true;
-        	generationLock.notify();
-    	}
+		synchronized (generationLock) {
+			if (!isAlive() || isInterrupted()) {
+				System.out.println("Thread not alive, starting new one...");
+				try {
+					start();
+				} catch (IllegalThreadStateException e) {
+					System.out.println("Thread already started, creating new one...");
+					// If thread is already started but not running, create a new one
+					Thread newThread = new Thread(this);
+					newThread.start();
+				}
+			}
+			startGeneration = true;
+			generationLock.notify();
+		}
 	}
 
 	protected void delay(int newDelay) {
@@ -638,10 +639,10 @@ private void updateBoardWithSolution(int[][][] solution) {
 	}
 
 	public boolean isGenerationRunning() {
-    	synchronized (generationLock) {
-        	return startGeneration;
-    	}
-	}	
+		synchronized (generationLock) {
+			return startGeneration;
+		}
+	}
 
 	private void status(String str) {
 		status = new UIStatus(str, GP.panel[4]);
@@ -935,6 +936,12 @@ private void updateBoardWithSolution(int[][][] solution) {
 					snd.loop();
 			}
 		});
+
+		options.left[2].addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				options.setPenalty(false);
+			}
+		});
 		options.right[0].addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				options.setSize(true);
@@ -947,6 +954,11 @@ private void updateBoardWithSolution(int[][][] solution) {
 					snd.stop();
 				else
 					snd.loop();
+			}
+		});
+		options.right[2].addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				options.setPenalty(true);
 			}
 		});
 
