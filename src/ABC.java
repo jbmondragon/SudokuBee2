@@ -1,4 +1,5 @@
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 class ABC extends Thread {
 	private int[][][] problem;
@@ -9,94 +10,153 @@ class ABC extends Thread {
 	private Bee[] bee;
 	private Bee bestBee;
 	private Subgrid[] subgrid;
-	private Random rand = new Random();
+	private Random rand = ThreadLocalRandom.current();
 	private String information = "";
 	private GreedySelection greedy = new GreedySelection();
 	private PrintResult printer;
+	private boolean shouldStop = false;
 
 	ABC(PrintResult printer, int[][][] problem, int employedSize, int onlookerSize, int maxCycle) {
-
-		// Setting of parameters
-
 		this.problem = problem;
 		this.maxCycle = maxCycle;
 		this.employedSize = employedSize;
 		this.onlookerSize = onlookerSize;
 		this.printer = printer;
 		numCell = problem.length * problem.length;
-		scoutSize = (int) (0.1 * employedSize);
+		
+		// Adaptive scout size based on problem size
+		int size = problem.length;
+		if (size <= 9) {
+			scoutSize = (int) (0.1 * employedSize);
+		} else if (size <= 16) {
+			scoutSize = (int) (0.05 * employedSize);
+		} else {
+			scoutSize = (int) (0.02 * employedSize); // Smaller scout size for large grids
+		}
+		scoutSize = Math.max(1, scoutSize); // Ensure at least 1 scout
+		
 		initialization();
-
 	}
 
 	public void run() {
 		Bee v;
 		double sumFitness = 0, beeFitness = 0;
 
-		// actual
-		for (cycle = 0; cycle < maxCycle && maxFit != 1; cycle++) {
+		// Early termination if problem is too large and fitness is not improving
+		int noImprovementCount = 0;
+		double lastBestFitness = 0;
+
+		for (cycle = 0; cycle < maxCycle && maxFit != 1 && !shouldStop; cycle++) {
 			sumFitness = 0;
 
-			// employed bee phase
-			for (int i = 0; i < bee.length && maxFit != 1; i++) {
-				v = neighborhoodSearch(i); // neighborhood search
-				bee[i] = greedy.greedySearch(bee[i], v); // greedy
+			// employed bee phase - parallelizable but keeping single-threaded for simplicity
+			for (int i = 0; i < bee.length && maxFit != 1 && !shouldStop; i++) {
+				v = neighborhoodSearch(i);
+				bee[i] = greedy.greedySearch(bee[i], v);
 				beeFitness = bee[i].getFitness();
-				maxFit = getMaxFit(maxFit, beeFitness, i); // storing of bestbee
+				maxFit = getMaxFit(maxFit, beeFitness, i);
 				sumFitness = sumFitness + beeFitness;
 			}
 
-			// onlooker bee phase
-			for (int i = 0; i < bee.length && maxFit != 1; i++) {
+			// Check for early termination
+			if (Math.abs(maxFit - lastBestFitness) < 0.001) {
+				noImprovementCount++;
+			} else {
+				noImprovementCount = 0;
+				lastBestFitness = maxFit;
+			}
+			
+			// Early termination for large grids if no improvement
+			if (problem.length >= 16 && noImprovementCount > 100) {
+				System.out.println("Early termination: No improvement for 100 cycles");
+				break;
+			}
+
+			// onlooker bee phase - limit for large grids
+			int maxOnlookerIterations = (problem.length >= 16) ? bee.length / 2 : bee.length;
+			for (int i = 0; i < maxOnlookerIterations && maxFit != 1 && !shouldStop; i++) {
+				if (sumFitness == 0) break; // Prevent division by zero
 				double probability = bee[i].getFitness() / sumFitness;
-				int maxOnlooker = (int) ((probability) * onlookerSize);
+				int maxOnlooker = (int) (probability * onlookerSize);
+				maxOnlooker = Math.min(maxOnlooker, 5); // Limit onlookers per employed bee
+				
 				for (int count = 0; count < maxOnlooker; count++) {
-					v = neighborhoodSearch(i); // neighborhood search
-					bee[i] = greedy.greedySearch(bee[i], v); // greedy
-					maxFit = getMaxFit(maxFit, bee[i].getFitness(), i); // storing of best bee
+					v = neighborhoodSearch(i);
+					bee[i] = greedy.greedySearch(bee[i], v);
+					maxFit = getMaxFit(maxFit, bee[i].getFitness(), i);
 				}
 			}
 
-			if (scoutSize > 0 && maxFit != 1) {
-				double maxMin = 1;
-				int minSet[] = new int[scoutSize]; // a set of indices containing the minimum fitness of scoutSize bees
-				for (int i = 0; i < scoutSize; i++) {
-					minSet[i] = i;
-					if (maxMin > bee[i].getFitness())
-						maxMin = bee[i].getFitness();
-				}
-				for (int i = scoutSize; i < bee.length; i++) {
-					if (maxMin >= bee[i].getFitness()) {
-						boolean hasBeenPopped = false;
-						double temp = bee[i].getFitness();
-						for (int ctr = 0; ctr < scoutSize; ctr++) {
-							double curFitness = bee[minSet[ctr]].getFitness();
-							if (temp < curFitness)
-								temp = curFitness;
-							if (!hasBeenPopped && curFitness == maxMin) {
-								hasBeenPopped = true;
-								minSet[ctr] = i;
-							}
-						}
-						maxMin = temp;
-					}
-				}
-				for (int i = 0; i < scoutSize && maxFit != 1; i++) {
-					v = new Bee(getProblemCopy(), subgrid); // generating of new Solution
-					bee[minSet[i]] = greedy.greedySearch(bee[minSet[i]], v); // greedy
-					maxFit = getMaxFit(maxFit, bee[minSet[i]].getFitness(), minSet[i]); // storing of best bee
+			// Scout phase - only if needed and less frequent for large grids
+			if (scoutSize > 0 && maxFit != 1 && !shouldStop) {
+				// Only scout every 10 cycles for large grids to save computation
+				if (problem.length < 16 || cycle % 10 == 0) {
+					performScouting();
 				}
 			}
-			printer.print((cycle + 1) + "\t" + bestBee.getFitness());
-			v = null;
+			
+			// Print progress less frequently for large grids
+			if (problem.length < 16 || cycle % 100 == 0) {
+				printer.print((cycle + 1) + "\t" + bestBee.getFitness());
+			}
+			
+			// Adaptive termination for very large grids
+			if (problem.length >= 25 && cycle > 1000 && maxFit > 0.8) {
+				System.out.println("Early termination for 25x25: Good enough solution found");
+				break;
+			}
 		}
 		printer.print((cycle) + "\t" + bestBee.getFitness());
 	}
 
+	private void performScouting() {
+		double maxMin = 1;
+		int minSet[] = new int[scoutSize];
+		for (int i = 0; i < scoutSize; i++) {
+			minSet[i] = i;
+			if (maxMin > bee[i].getFitness())
+				maxMin = bee[i].getFitness();
+		}
+		
+		// Find worst bees more efficiently
+		for (int i = scoutSize; i < bee.length; i++) {
+			if (bee[i].getFitness() <= maxMin) {
+				// Replace the worst in minSet
+				int worstIndex = 0;
+				double worstFitness = bee[minSet[0]].getFitness();
+				for (int ctr = 1; ctr < scoutSize; ctr++) {
+					if (bee[minSet[ctr]].getFitness() > worstFitness) {
+						worstFitness = bee[minSet[ctr]].getFitness();
+						worstIndex = ctr;
+					}
+				}
+				if (bee[i].getFitness() < worstFitness) {
+					minSet[worstIndex] = i;
+					// Update maxMin
+					maxMin = bee[minSet[0]].getFitness();
+					for (int ctr = 1; ctr < scoutSize; ctr++) {
+						if (bee[minSet[ctr]].getFitness() < maxMin) {
+							maxMin = bee[minSet[ctr]].getFitness();
+						}
+					}
+				}
+			}
+		}
+		
+		for (int i = 0; i < scoutSize && maxFit != 1 && !shouldStop; i++) {
+			Bee v = new Bee(getProblemCopy(), subgrid);
+			bee[minSet[i]] = greedy.greedySearch(bee[minSet[i]], v);
+			maxFit = getMaxFit(maxFit, bee[minSet[i]].getFitness(), minSet[i]);
+		}
+	}
+
 	protected boolean isDone() {
-		if (cycle >= maxCycle || maxFit == 1)
-			return true;
-		return false;
+		return cycle >= maxCycle || maxFit == 1 || shouldStop;
+	}
+
+	public void stopExecution() {
+		shouldStop = true;
+		this.interrupt();
 	}
 
 	private void initialization() {
@@ -110,21 +170,40 @@ class ABC extends Thread {
 				xCount = -1;
 		}
 
+		// Adaptive population size based on problem complexity
+		int adaptiveEmployedSize = employedSize;
+		if (problem.length >= 25) {
+			adaptiveEmployedSize = Math.min(employedSize, 50); // Smaller population for large grids
+		}
+		
 		// Initialization of population
-		bee = new Bee[employedSize];
+		bee = new Bee[adaptiveEmployedSize];
 		bestBee = new Bee(subgrid);
-		for (int ctr = 0; ctr < employedSize; ctr++) {
+		
+		int emptyCells = 0;
+		for (int ctr = 0; ctr < problem.length; ctr++) {
+			for (int count = 0; count < problem.length; count++) {
+				if (problem[ctr][count][1] == 1) {
+					emptyCells++;
+				}
+			}
+		}
+		
+		System.out.println("Initializing " + adaptiveEmployedSize + " bees for " + problem.length + "x" + problem.length + " grid with " + emptyCells + " empty cells");
+
+		for (int ctr = 0; ctr < adaptiveEmployedSize; ctr++) {
 			bee[ctr] = new Bee(getProblemCopy(), subgrid);
 			double fitnessValue = bee[ctr].evaluate(bee[ctr].getSolution());
 			bee[ctr].setFitness(fitnessValue);
 
-			// For Debugging Purposes
-			System.out.println("Bee " + ctr + " initialized | penaltyType = " + SudokuBee2.penaltyType
-					+ " | fitness = " + fitnessValue);
-
+			if (ctr == 0 || fitnessValue > bestBee.getFitness()) {
+				bestBee.copyProblem(bee[ctr].getCopy());
+				bestBee.setFitness(fitnessValue);
+				maxFit = fitnessValue;
+			}
 		}
-		bestBee.copyProblem(bee[0].getCopy());
-		bestBee.setFitness(bee[0].getFitness());
+
+		// Initialize empty cells array
 		emptyCell = new int[numCell][3];
 		maxEmptyCell = 0;
 		for (int ctr = 0; ctr < problem.length; ctr++) {
@@ -142,6 +221,7 @@ class ABC extends Thread {
 				}
 			}
 		}
+		
 		for (int ctr = 0; ctr < problem.length; ctr++)
 			subgrid[ctr].setNeededNum(bestBee.neededNumbers(subgrid[ctr]));
 	}
@@ -171,9 +251,7 @@ class ABC extends Thread {
 		for (int ctr = 0; ctr < copy.length; ctr++) {
 			for (int ct = 0; ct < copy.length; ct++) {
 				copy[ctr][ct][0] = problem[ctr][ct][0];
-				copy[ct][ctr][0] = problem[ct][ctr][0];
 				copy[ctr][ct][1] = problem[ctr][ct][1];
-				copy[ct][ctr][1] = problem[ct][ctr][1];
 			}
 		}
 		return copy;
@@ -189,21 +267,30 @@ class ABC extends Thread {
 	}
 
 	private Bee neighborhoodSearch(int i) {
-		int j = rand.nextInt(maxEmptyCell), k = rand.nextInt(employedSize);
-		while (k == i) // while k=i, look for another k
-			k = rand.nextInt(employedSize);
+		if (maxEmptyCell == 0) return bee[i];
+		
+		int j = rand.nextInt(maxEmptyCell);
+		int k = rand.nextInt(bee.length);
+		while (k == i && bee.length > 1)
+			k = rand.nextInt(bee.length);
 
-		int xij = bee[i].getSolution()[emptyCell[j][0]][emptyCell[j][1]][0],
-				xkj = bee[k].getSolution()[emptyCell[j][0]][emptyCell[j][1]][0];
-		int neededNum[] = subgrid[emptyCell[j][2]].getNeededNum();
-		int vij = neededNum[(int) Math.ceil(xij + Math.abs(rand.nextDouble() * (xij - xkj))) % neededNum.length];
+		int xij = bee[i].getSolution()[emptyCell[j][0]][emptyCell[j][1]][0];
+		int xkj = bee[k].getSolution()[emptyCell[j][0]][emptyCell[j][1]][0];
+		
+		int[] neededNum = subgrid[emptyCell[j][2]].getNeededNum();
+		if (neededNum.length == 0) return bee[i];
+		
+		// Improved neighborhood search with bounds checking
+		int index = (int) (Math.abs(xij + rand.nextDouble() * (xij - xkj)) % neededNum.length);
+		int vij = neededNum[Math.max(0, Math.min(index, neededNum.length - 1))];
+		
 		Bee newBee = new Bee(subgrid);
 		newBee.swap(bee[i].getCopy(), emptyCell[j][2], emptyCell[j][0], emptyCell[j][1], xij, vij);
 		return newBee;
 	}
 
 	protected void decompose() {
-		for (int ctr = 0; ctr < employedSize; ctr++)
+		for (int ctr = 0; ctr < bee.length; ctr++)
 			bee[ctr] = null;
 		bestBee = null;
 	}
