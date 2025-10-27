@@ -1,3 +1,5 @@
+import java.util.HashSet;
+
 class Validator {
 	private int[][][] grid;
 	private Subgrid subgrid[];
@@ -33,9 +35,9 @@ class Validator {
 	}
 
 	protected boolean checkValidity() {
-		customSet hor = new customSet();
-		customSet ver = new customSet();
-		customSet sub = new customSet();
+		HashSet<Integer> hor = new HashSet<>();
+		HashSet<Integer> ver = new HashSet<>();
+		HashSet<Integer> sub = new HashSet<>();
 		for (int ctr = 0; ctr < grid.length; ctr++) {
 			hor.clear();
 			ver.clear();
@@ -75,9 +77,9 @@ class Validator {
 	}
 
 	protected boolean checkAnswer() {
-		customSet hor = new customSet();
-		customSet ver = new customSet();
-		customSet sub = new customSet();
+		HashSet<Integer> hor = new HashSet<>();
+		HashSet<Integer> ver = new HashSet<>();
+		HashSet<Integer> sub = new HashSet<>();
 
 		for (int ctr = 0; ctr < grid.length; ctr++) {
 			hor.clear();
@@ -117,5 +119,4 @@ class Validator {
 
 		return true;
 	}
-
 }
