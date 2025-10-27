@@ -77,6 +77,7 @@ public class SudokuBee2 extends Thread {
 					start();
 				}
 				triggerGeneration();
+				showPuzzleGenerationDialog();
 				popUp(size);
 			}
 		});
@@ -1010,6 +1011,98 @@ public class SudokuBee2 extends Thread {
 		}
 		System.out.println();
 	}
+
+	// Add this method to show puzzle generation options dialog
+private void showPuzzleGenerationDialog() {
+    // Create the dialog panel
+    javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridLayout(3, 2, 10, 10));
+    
+    // Percentage selection
+    javax.swing.JLabel percentageLabel = new javax.swing.JLabel("Percentage of given cells:");
+    javax.swing.JComboBox<Integer> percentageCombo = new javax.swing.JComboBox<>();
+    for (int i = 0; i <= 95; i += 5) {
+        percentageCombo.addItem(i);
+    }
+    percentageCombo.setSelectedItem(10); // Default 10%
+    
+    // Empty board option
+    javax.swing.JLabel emptyLabel = new javax.swing.JLabel("Start from empty board:");
+    javax.swing.JComboBox<String> emptyCombo = new javax.swing.JComboBox<>(new String[]{"Yes", "No"});
+    
+    panel.add(percentageLabel);
+    panel.add(percentageCombo);
+    panel.add(emptyLabel);
+    panel.add(emptyCombo);
+    
+    int result = javax.swing.JOptionPane.showConfirmDialog(frame, panel, 
+        "Puzzle Generation Options", javax.swing.JOptionPane.OK_CANCEL_OPTION);
+    
+    if (result == javax.swing.JOptionPane.OK_OPTION) {
+        int percentage = (Integer) percentageCombo.getSelectedItem();
+        boolean startFromEmpty = emptyCombo.getSelectedItem().equals("Yes");
+        
+        // Start the puzzle generation process
+        startPuzzleGeneration(percentage, startFromEmpty);
+    }
+}
+
+// Add this method to handle puzzle generation
+private void startPuzzleGeneration(int percentage, boolean startFromEmpty) {
+    try {
+        int size = options.getBoardSize();
+        RandomSudokuGenerator gen = new RandomSudokuGenerator(size);
+        
+        int[][][] userBoard = null;
+        if (!startFromEmpty && board != null) {
+            userBoard = board.getSudokuArray();
+            System.out.println("Using current board as user input");
+        }
+        
+        int[][][] generatedPuzzle = gen.generate(percentage, startFromEmpty, userBoard);
+        
+        if (generatedPuzzle != null) {
+            // Update the board
+            if (board != null) {
+                board.decompose();
+                board = null;
+            }
+            
+            board(generatedPuzzle, false);
+            isSolved = false;
+            
+            // Refresh display
+            GP.panel[5].revalidate();
+            GP.panel[5].repaint();
+            
+            System.out.println("Puzzle generated successfully with " + percentage + "% given cells");
+            
+            // Show success message
+            javax.swing.JOptionPane.showMessageDialog(frame, 
+                "Puzzle generated successfully!\n" +
+                "Given cells: " + percentage + "%\n" +
+                "Start from empty: " + (startFromEmpty ? "Yes" : "No"),
+                "Generation Complete", 
+                javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(frame, 
+                "Failed to generate puzzle. Please try again.", 
+                "Generation Error", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+        
+    } catch (IllegalArgumentException e) {
+        javax.swing.JOptionPane.showMessageDialog(frame, 
+            e.getMessage(), 
+            "Invalid Input", 
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+    } catch (Exception e) {
+        e.printStackTrace();
+        javax.swing.JOptionPane.showMessageDialog(frame, 
+            "Error generating puzzle: " + e.getMessage(), 
+            "Generation Error", 
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+    }
+}
 
 	// Generate Sudoku test instances (from D4_Sudoku Test Instances.pdf)
 	private void generateTestInstances() {
