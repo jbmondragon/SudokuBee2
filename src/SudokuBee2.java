@@ -59,28 +59,21 @@ public class SudokuBee2 extends Thread {
 	// Show Menu
 	private void menu() {
 		GP = new generalPanel(container);
-		GP.play.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				mainGame();
-				status("");
-				isAns = true;
-				int size = options.getBoardSize();
-				board(new int[size][size][2], true);
-				numEmp = 100;
-				numOnlook = 200;
-				numCycle = 100000000;
-				generate = true;
-				gameMode = true;
-				isSolved = false;
-
-				if (!isAlive()) {
-					start();
-				}
-				triggerGeneration();
-				showPuzzleGenerationDialog();
-				popUp(size);
-			}
-		});
+GP.play.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        // First initialize the main game UI, then show puzzle generation options
+        mainGame();
+        status("");
+        isAns = true;
+        
+        // Create a temporary empty board for the UI
+        int size = options.getBoardSize();
+        board(new int[size][size][2], true);
+        
+        // Show puzzle generation options dialog
+        showPuzzleGenerationDialog();
+    }
+});
 		GP.open.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				GP.setVisibleButton(false);
@@ -194,41 +187,41 @@ public class SudokuBee2 extends Thread {
 	}
 
 	// Set up the Sudoku board with the given array and visibility status
-	private void board(int sudokuArray[][][], boolean isNull) {
-		GP.setVisible(5);
+private void board(int sudokuArray[][][], boolean isNull) {
+    GP.setVisible(5); // CRITICAL: Ensure we're on the board panel
 
-		if (board == null || generate) {
-			board = new UIBoard(sudokuArray, isNull, GP.panel[5]);
-		} else {
-			board.setSudoku(sudokuArray);
-		}
+    if (board == null || generate) {
+        board = new UIBoard(sudokuArray, isNull, GP.panel[5]);
+    } else {
+        board.setSudoku(sudokuArray);
+    }
 
-		int size = board.getSize();
-		for (btnX = 0; btnX < size; btnX++) {
-			for (btnY = 0; btnY < size; btnY++) {
-				final int x = btnX;
-				final int y = btnY;
+    int size = board.getSize();
+    for (btnX = 0; btnX < size; btnX++) {
+        for (btnY = 0; btnY < size; btnY++) {
+            final int x = btnX;
+            final int y = btnY;
 
-				// Remove existing listeners first
-				for (MouseListener ml : board.btn[btnX][btnY].getMouseListeners()) {
-					board.btn[btnX][btnY].removeMouseListener(ml);
-				}
+            // Remove existing listeners first
+            for (MouseListener ml : board.btn[btnX][btnY].getMouseListeners()) {
+                board.btn[btnX][btnY].removeMouseListener(ml);
+            }
 
-				board.btn[btnX][btnY].addMouseListener(new MouseAdapter() {
-					@Override
-					public void mouseClicked(MouseEvent e) {
-						if ((e.getButton() == MouseEvent.BUTTON3 ||
-								(e.getButton() == MouseEvent.BUTTON1 && board.getValue(x, y) == 0))
-								&& !isSolved) {
-							pop.setVisible(true, x, y, board.getValue(x, y));
-							status.setVisible(false);
-							game.setVisible(false);
-						}
-					}
-				});
-			}
-		}
-	}
+            board.btn[btnX][btnY].addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if ((e.getButton() == MouseEvent.BUTTON3 ||
+                            (e.getButton() == MouseEvent.BUTTON1 && board.getValue(x, y) == 0))
+                            && !isSolved) {
+                        pop.setVisible(true, x, y, board.getValue(x, y));
+                        status.setVisible(false);
+                        game.setVisible(false);
+                    }
+                }
+            });
+        }
+    }
+}
 
 	// Update the Sudoku array and answer count when a cell is modified
 	private void popUp(int size) {
@@ -420,49 +413,71 @@ public class SudokuBee2 extends Thread {
 		});
 	}
 
-	private void solve() {
-		solve = new UISolve(GP.solve);
-		solve.cancel.addActionListener(e -> {
-			status.setVisible(true);
-			game.setVisible(true);
-			solve.decompose();
-			solve = null;
-			GP.setVisible(5);
-		});
+private void solve() {
+    solve = new UISolve(GP.solve);
+    solve.cancel.addActionListener(e -> {
+        status.setVisible(true);
+        game.setVisible(true);
+        solve.decompose();
+        solve = null;
+        GP.setVisible(5);
+    });
 
-		solve.mode.addActionListener(e -> solve.changeMode());
-		solve.solve.addActionListener(e -> {
-			try {
-				// Read parameters from the UISolve fields
-				numEmp = Integer.parseInt(solve.numEmployed.getText());
-				numOnlook = Integer.parseInt(solve.numOnlook.getText());
-				numCycle = Integer.parseInt(solve.numCycles.getText());
+    solve.mode.addActionListener(e -> solve.changeMode());
+    solve.solve.addActionListener(e -> {
+        try {
+            // Adaptive parameters based on board size
+            int size = board.getSize();
+            
+            if (size <= 9) {
+                numEmp = 50;
+                numOnlook = 100;
+                numCycle = 10000;
+            } else if (size <= 16) {
+                numEmp = 30;
+                numOnlook = 60;
+                numCycle = 5000;
+            } else { // 25x25
+                numEmp = 20;
+                numOnlook = 40;
+                numCycle = 2000;
+            }
+            
+            // Use values from UI if provided, otherwise use adaptive defaults
+            try {
+                numEmp = Integer.parseInt(solve.numEmployed.getText());
+                numOnlook = Integer.parseInt(solve.numOnlook.getText());
+                numCycle = Integer.parseInt(solve.numCycles.getText());
+            } catch (NumberFormatException ex) {
+                // Use adaptive defaults
+                System.out.println("Using adaptive parameters for " + size + "x" + size + " grid");
+            }
 
-				if (numEmp >= numOnlook || numEmp < 2) {
-					throw new Exception("Invalid parameters");
-				}
+            if (numEmp >= numOnlook || numEmp < 2) {
+                throw new Exception("Invalid parameters");
+            }
 
-				generate = false;
-				gameMode = solve.modeNum == 0;
+            generate = false;
+            gameMode = solve.modeNum == 0;
 
-				// Close the solve dialog first
-				solve.decompose();
-				solve = null;
-				GP.setVisible(5);
+            // Close the solve dialog first
+            solve.decompose();
+            solve = null;
+            GP.setVisible(5);
 
-				// Then trigger generation in background
-				triggerGeneration();
+            // Then trigger generation in background
+            triggerGeneration();
 
-			} catch (Exception ex) {
-				SwingUtilities.invokeLater(() -> {
-					solve.decompose();
-					solve = null;
-					GP.setVisible(5);
-					exit(7);
-				});
-			}
-		});
-	}
+        } catch (Exception ex) {
+            SwingUtilities.invokeLater(() -> {
+                solve.decompose();
+                solve = null;
+                GP.setVisible(5);
+                exit(7);
+            });
+        }
+    });
+}
 
 	@Override
 	public void run() {
@@ -819,42 +834,53 @@ public class SudokuBee2 extends Thread {
 					if (exit.num == 0)
 						System.exit(0);
 					else if (exit.num == 1) {
-						board.decompose();
-						board = null;
-						game.decompose();
-						game = null;
-						status.decompose();
-						status = null;
-						pop.decompose();
-						pop = null;
-						GP.setVisible(7);
-					} else if (exit.num == 2) {
-						board.decompose();
-						board = null;
-						game.decompose();
-						game = null;
-						status.decompose();
-						status = null;
-						pop.decompose();
-						pop = null;
-						mainGame();
-						status("");
-						isAns = true;
-						int size = options.getBoardSize();
-						board(new int[size][size][2], true);
-						numEmp = 100;
-						numOnlook = 200;
-						numCycle = 100000000;
-						generate = true;
-						gameMode = true;
-
-						// Ensure thread is alive and trigger generation
-						if (!isAlive()) {
-							start();
-						}
-						triggerGeneration();
-						popUp(size);
-					} else if (exit.num == 9) {
+    // Safely decompose components that exist
+    if (board != null) {
+        board.decompose();
+        board = null;
+    }
+    if (game != null) {
+        game.decompose();
+        game = null;
+    }
+    if (status != null) {
+        status.decompose();
+        status = null;
+    }
+    if (pop != null) {
+        pop.decompose();
+        pop = null;
+    }
+    GP.setVisible(7); // Go to main menu
+    exit = null;
+} else if (exit.num == 2) {
+    // For "New Game", we preserve the existing UI but clear the board
+    if (board != null) {
+        board.decompose();
+        board = null;
+    }
+    
+    // Clear popup
+    if (pop != null) {
+        pop.decompose();
+        pop = null;
+    }
+    
+    // Make sure we're on the game panel with UI visible
+    GP.setVisible(5);
+    if (game != null) game.setVisible(true);
+    if (status != null) status.setVisible(true);
+    
+    // Create a temporary empty board to maintain UI consistency
+    int size = options.getBoardSize();
+    board(new int[size][size][2], true);
+    
+    // Show puzzle generation options
+    SwingUtilities.invokeLater(() -> {
+        showPuzzleGenerationDialog();
+    });
+    exit = null;
+} else if (exit.num == 9) {
 						GP.setVisible(5);
 						SaveSudoku saving = new SaveSudoku();
 						saving.delete(saveFileName);
@@ -1043,6 +1069,41 @@ private void showPuzzleGenerationDialog() {
         
         // Start the puzzle generation process
         startPuzzleGeneration(percentage, startFromEmpty);
+    } else {
+        // User pressed Cancel - handle this case properly
+        handlePuzzleGenerationCancel();
+    }
+}
+
+/**
+ * Handles when user cancels the puzzle generation dialog
+ */
+private void handlePuzzleGenerationCancel() {
+    // If we came from the main menu (Start button), go back to main menu
+    if (game == null || board == null) {
+        // We're in an incomplete state, go back to main menu
+        if (board != null) {
+            board.decompose();
+            board = null;
+        }
+        if (game != null) {
+            game.decompose();
+            game = null;
+        }
+        if (status != null) {
+            status.decompose();
+            status = null;
+        }
+        if (pop != null) {
+            pop.decompose();
+            pop = null;
+        }
+        GP.setVisible(7); // Go back to main menu
+    } else {
+        // We're in an existing game, just stay on the current board
+        GP.setVisible(5);
+        if (game != null) game.setVisible(true);
+        if (status != null) status.setVisible(true);
     }
 }
 
@@ -1061,14 +1122,48 @@ private void startPuzzleGeneration(int percentage, boolean startFromEmpty) {
         int[][][] generatedPuzzle = gen.generate(percentage, startFromEmpty, userBoard);
         
         if (generatedPuzzle != null) {
-            // Update the board
+            // Initialize game state
+            isAns = true;
+            isSolved = false;
+            generate = true;
+            gameMode = true;
+            
+            // Set default ABC parameters
+            numEmp = 100;
+            numOnlook = 200;
+            numCycle = 100000000;
+
+            // Check if we need to initialize main game UI (for "Start" button scenario)
+            boolean isNewGame = (game == null);
+            
+            if (isNewGame) {
+                // Initialize main game UI components for new game
+                mainGame();
+                status("");
+            }
+            
+            // Only decompose board if it exists
             if (board != null) {
                 board.decompose();
                 board = null;
             }
             
+            // Ensure we're on the correct panel and recreate the board
+            GP.setVisible(5); // Make sure we're on the board panel
+            
+            // Create the board with the generated puzzle
             board(generatedPuzzle, false);
-            isSolved = false;
+            
+            // Set up popup for the new board
+            popUp(size);
+            
+            // Make sure UI components are visible
+            if (game != null) {
+                game.setVisible(true);
+            }
+            if (status != null) {
+                status.setVisible(true);
+            }
             
             // Refresh display
             GP.panel[5].revalidate();
@@ -1076,13 +1171,6 @@ private void startPuzzleGeneration(int percentage, boolean startFromEmpty) {
             
             System.out.println("Puzzle generated successfully with " + percentage + "% given cells");
             
-            // Show success message
-            javax.swing.JOptionPane.showMessageDialog(frame, 
-                "Puzzle generated successfully!\n" +
-                "Given cells: " + percentage + "%\n" +
-                "Start from empty: " + (startFromEmpty ? "Yes" : "No"),
-                "Generation Complete", 
-                javax.swing.JOptionPane.INFORMATION_MESSAGE);
         } else {
             javax.swing.JOptionPane.showMessageDialog(frame, 
                 "Failed to generate puzzle. Please try again.", 
