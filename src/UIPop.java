@@ -16,27 +16,22 @@ public class UIPop extends generalPanel {
 		this.pane = pane;
 		this.size = size;
 
-		// Main panel
 		panel = addPanel(pane, 5, 84, 500, 500);
 		panel.setOpaque(false);
 
-		// Background label
 		bg = addLabel(panel, "img/game control/" + size + "x" + size + ".png", 0, 0);
 		javax.swing.Icon bgIcon = bg.getIcon();
 		int bgW = bgIcon.getIconWidth();
 		int bgH = bgIcon.getIconHeight();
 
-		// Send background to back
 		panel.setComponentZOrder(bg, panel.getComponentCount() - 1);
 
-		// Hardcoded positions for 9 main buttons
 		int[][] positions = {
 				{ 100, 180 }, { 182, 180 }, { 255, 180 },
 				{ 330, 180 }, { 150, 250 }, { 220, 250 },
 				{ 295, 250 }, { 180, 315 }, { 257, 315 }
 		};
 
-		// Create main buttons
 		btn = new JButton[size];
 		for (int i = 0; i < size; i++) {
 			int bx = positions[i][0];
@@ -59,7 +54,6 @@ public class UIPop extends generalPanel {
 			panel.setComponentZOrder(btn[i], 0);
 		}
 
-		// Top-layer buttons (erase and cancel) - positions unchanged
 		erase = addButton(panel, "img/box/misc/clear.png", 143, 125);
 		cancel = addButton(panel, "img/box/misc/cancel.png", 286, 125);
 
@@ -71,7 +65,6 @@ public class UIPop extends generalPanel {
 		cancel.setOpaque(false);
 		cancel.setContentAreaFilled(false);
 
-		// Text field
 		field = addTextField(panel, "", 200, 100, 80, 38);
 		field.grabFocus();
 	}
