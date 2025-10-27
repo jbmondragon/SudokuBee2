@@ -1,4 +1,5 @@
 import java.util.Random;
+import java.util.HashSet;
 
 class Bee {
 	private int[][][] solution;
@@ -47,8 +48,8 @@ class Bee {
 
 	protected int getPenaltyValue() {
 		int penalty = 0;
-		customSet hor = new customSet();
-		customSet ver = new customSet();
+		HashSet<Integer> hor = new HashSet<>();
+		HashSet<Integer> ver = new HashSet<>();
 		for (int ctr = 0; ctr < solution.length; ctr++) {
 			hor.clear();
 			ver.clear();
@@ -71,20 +72,15 @@ class Bee {
 
 		switch (SudokuBee2.penaltyType) {
 			case 0:
-				// System.out.println("Using penalty: Missing numbers with sub-grid
-				// constraint");
 				fitness = missingNumbersPenalty(sudoku, true);
 				break;
 			case 1:
-				// System.out.println("Using penalty: Sum-Product with sub-grid constraint");
 				fitness = sumProductPenalty(sudoku, true);
 				break;
 			case 2:
-				// System.out.println("Using penalty: Sum-Product without sub-grid constraint");
 				fitness = sumProductPenalty(sudoku, false);
 				break;
 			default:
-				// System.out.println("Using default penalty: Missing numbers");
 				fitness = missingNumbersPenalty(sudoku, true);
 		}
 
@@ -97,17 +93,20 @@ class Bee {
 
 		// Row & Column constraint
 		for (int i = 0; i < size; i++) {
-			boolean[] rowSeen = new boolean[size + 1];
-			boolean[] colSeen = new boolean[size + 1];
+			HashSet<Integer> rowSeen = new HashSet<>();
+			HashSet<Integer> colSeen = new HashSet<>();
 			for (int j = 0; j < size; j++) {
 				int rowVal = sudoku[i][j][0];
 				int colVal = sudoku[j][i][0];
-				if (rowVal != 0 && rowSeen[rowVal])
+				if (rowVal != 0 && rowSeen.contains(rowVal))
 					penalty++;
-				if (colVal != 0 && colSeen[colVal])
+				else
+					rowSeen.add(rowVal);
+					
+				if (colVal != 0 && colSeen.contains(colVal))
 					penalty++;
-				rowSeen[rowVal] = true;
-				colSeen[colVal] = true;
+				else
+					colSeen.add(colVal);
 			}
 		}
 
@@ -116,13 +115,14 @@ class Bee {
 			int sub = (int) Math.sqrt(size);
 			for (int boxRow = 0; boxRow < sub; boxRow++) {
 				for (int boxCol = 0; boxCol < sub; boxCol++) {
-					boolean[] boxSeen = new boolean[size + 1];
+					HashSet<Integer> boxSeen = new HashSet<>();
 					for (int r = 0; r < sub; r++) {
 						for (int c = 0; c < sub; c++) {
 							int val = sudoku[boxRow * sub + r][boxCol * sub + c][0];
-							if (val != 0 && boxSeen[val])
+							if (val != 0 && boxSeen.contains(val))
 								penalty++;
-							boxSeen[val] = true;
+							else
+								boxSeen.add(val);
 						}
 					}
 				}
@@ -206,29 +206,26 @@ class Bee {
 
 	protected int[] neededNumbers(Subgrid grid) {
 		int size = solution.length;
-		boolean[] used = new boolean[size + 1]; // Tracks which numbers are already in the subgrid
+		HashSet<Integer> used = new HashSet<>(); // Tracks which numbers are already in the subgrid
 
 		// Mark numbers that are already filled in the subgrid
 		for (int y = grid.getStartY(), limY = y + grid.getDimY(); y < limY; y++) {
 			for (int x = grid.getStartX(), limX = x + grid.getDimX(); x < limX; x++) {
 				int val = solution[y][x][0];
 				if (solution[y][x][1] == 0 && val > 0 && val <= size) {
-					used[val] = true; // mark as used
+					used.add(val); // mark as used
 				}
 			}
 		}
 
 		// Count how many numbers are needed
-		int neededCount = 0;
-		for (int i = 1; i <= size; i++) {
-			if (!used[i])
-				neededCount++;
-		}
+		int neededCount = size - used.size();
 
 		// Fill the array with missing numbers
 		int[] neededNum = new int[neededCount];
-		for (int i = 1, index = 0; i <= size; i++) {
-			if (!used[i]) {
+		int index = 0;
+		for (int i = 1; i <= size; i++) {
+			if (!used.contains(i)) {
 				neededNum[index++] = i;
 			}
 		}
